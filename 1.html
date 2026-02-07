@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMPK LabOrder Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --secondary: #8b5cf6;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-dark: #0f172a;
+            --bg-medium: #1e293b;
+            --glass: rgba(255, 255, 255, 0.98);
+            --text-dark: #1e293b;
+            --text-medium: #475569;
+            --text-light: #64748b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: var(--text-dark);
+            min-height: 100vh;
+            padding: 15px;
+            font-size: 13px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        
+        .particle {
+            position: absolute;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15));
+            border-radius: 50%;
+            animation: float 20s infinite ease-in-out;
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.2);
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            50% { opacity: 0.7; }
+            100% { transform: translateY(-100vh) rotate(360deg); }
+        }
+
+        /* --- LAYOUT --- */
+        .container { 
+            max-width: 1500px; 
+            margin: 0 auto; 
+            position: relative;
+            z-index: 1;
+        }
+        
+        .main-card {
+            background: var(--glass);
+            border-radius: 20px;
+            box-shadow: 
+                0 30px 60px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            height: calc(100vh - 30px);
+            backdrop-filter: blur(20px);
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            border-right: 1px solid #e2e8f0;
+            padding: 24px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        .brand-text {
+            font-size: 19px;
+            font-weight: 900;
+            color: var(--text-dark);
+            letter-spacing: -0.5px;
+        }
+        
+        .brand-text span {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .form-group label {
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: 800;
+            color: var(--text-light);
+            letter-spacing: 0.8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .form-group label::before {
+            content: '';
+            width: 3px;
+            height: 10px;
+            background: linear-gradient(180deg, var(--primary), var(--secondary));
+            border-radius: 2px;
+        }
+
+        select, input, textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 13px;
+            background: white;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: var(--text-dark);
+            font-weight: 500;
+        }
+        
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.5);
+        }
+        
+        .btn-outline {
+            background: white;
+            border: 2px solid #e2e8f0;
+            color: var(--text-medium);
+        }
+        
+        .btn-outline:hover {
+            background: #f8fafc;
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* --- CONTENT AREA --- */
+        .content {
+            padding: 24px;
+            background: white;
+            position: relative;
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-section {
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+        
+        .service-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
+        }
+        
+        .service-desc {
+            font-size: 12px;
+            color: var(--text-medium);
+            line-height: 1.5;
+        }
+
+        /* KPI Badges */
+        .kpi-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        
+        .kpi-badge {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border: 2px solid #bfdbfe;
+            color: #1e40af;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+        }
+        
+        .kpi-badge.purple {
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            border-color: #ddd6fe;
+            color: #6d28d9;
+        }
+        
+        .kpi-badge.cyan {
+            background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
+            border-color: #a5f3fc;
+            color: #0e7490;
+        }
+
+        /* Info Box */
+        .info-box {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-left: 3px solid var(--primary);
+            padding: 12px 14px;
+            border-radius: 8px;
+            margin-bottom: 14px;
+            font-size: 11px;
+            line-height: 1.6;
+            color: var(--text-medium);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
+        }
+        
+        .info-box-title {
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+
+        /* Simulation Box */
+        .sim-box {
+            background: linear-gradient(135deg, #f0f9ff 0%, #f5f3ff 100%);
+            border: 2px solid #e0e7ff;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.08);
+        }
+        
+        .sim-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .sim-title {
+            font-weight: 800;
+            font-size: 12px;
+            color: var(--text-dark);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .sim-value {
+            font-weight: 900;
+            color: var(--primary);
+            font-size: 14px;
+            background: white;
+            padding: 5px 12px;
+            border-radius: 8px;
+            border: 2px solid #e0e7ff;
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.1);
+        }
+        
+        .sim-description {
+            font-size: 10px;
+            color: var(--text-medium);
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        /* Range Slider */
+        input[type=range] {
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 10px;
+            outline: none;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin: 8px 0;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border: 3px solid var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            transition: all 0.2s ease;
+        }
+        
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.6);
+        }
+        
+        input[type=range]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: white;
+            border: 3px solid var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+        
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: var(--text-light);
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        /* Chart */
+        .chart-wrapper {
+            height: 280px;
+            width: 100%;
+            position: relative;
+            background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+            padding: 14px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            margin-bottom: 16px;
+        }
+
+        /* Order Summary */
+        .order-summary {
+            margin-top: 16px;
+            background: linear-gradient(135deg, var(--bg-medium) 0%, var(--bg-dark) 100%);
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 12px;
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            white-space: pre-wrap;
+            display: none;
+            font-size: 10px;
+            border: 1px solid #334155;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            line-height: 1.6;
+        }
+        
+        .order-summary.active {
+            display: block;
+        }
+
+        .hidden { display: none !important; }
+
+        /* --- PDF PRINT VIEW --- */
+        .print-view {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 210mm;
+            height: 297mm;
+            background: white;
+            z-index: 9999;
+            padding: 15mm;
+            box-sizing: border-box;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .print-view, .print-view * {
+                visibility: visible;
+            }
+            .print-view {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                display: block !important;
+                padding: 10mm;
+            }
+            .print-header {
+                text-align: center;
+                margin-bottom: 8px;
+                padding-bottom: 8px;
+                border-bottom: 2px solid #e2e8f0;
+            }
+            .print-title {
+                font-size: 18px;
+                font-weight: 800;
+                color: var(--text-dark);
+                margin-bottom: 3px;
+            }
+            .print-desc {
+                font-size: 9px;
+                color: var(--text-medium);
+            }
+            .print-kpi {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 8px;
+                flex-wrap: wrap;
+            }
+            .print-kpi-item {
+                padding: 4px 10px;
+                background: #f0f9ff;
+                border: 1px solid #bfdbfe;
+                border-radius: 6px;
+                font-size: 9px;
+                font-weight: 600;
+            }
+            .print-chart {
+                width: 100%;
+                height: 180px;
+                margin: 10px 0;
+            }
+            .print-summary {
+                font-size: 8px;
+                line-height: 1.5;
+                font-family: 'SF Mono', monospace;
+                white-space: pre-wrap;
+                background: #f8fafc;
+                padding: 10px;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                margin-top: 10px;
+            }
+        }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 1024px) {
+            .main-card {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            .sidebar {
+                border-right: none;
+                border-bottom: 1px solid #e2e8f0;
+            }
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 10px;
+            }
+            .main-card {
+                border-radius: 16px;
+                height: auto;
+            }
+            .sidebar, .content {
+                padding: 16px;
+            }
+            .service-title {
+                font-size: 18px;
+            }
+            .chart-wrapper {
+                height: 220px;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--primary), var(--secondary));
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, var(--primary-dark), #7c3aed);
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-particles" id="particles"></div>
+
+<div class="container">
+    <div class="main-card">
+        
+        <div class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">⚡</div>
+                <div class="brand-text">BioAssay <span>Direct</span></div>
+            </div>
+            
+            <div class="form-group">
+                <label>🔬 1. Service auswählen</label>
+                <select id="serviceSelect" onchange="changeService()">
+                    <option value="stability">Metabolische Stabilität</option>
+                    <option value="binding">Proteinbindung (PPB)</option>
+                    <option value="permeability">Caco-2 Permeabilität</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>🧬 2. Substanz-ID</label>
+                <input type="text" id="compoundId" placeholder="z.B. BAY-2024-1234">
+            </div>
+
+            <div class="form-group">
+                <label>💧 3. Testkonzentration</label>
+                <input type="number" id="conc" value="1.0" step="0.1" min="0.1">
+                <span style="font-size:10px; color: var(--text-light); margin-top:-4px;">Konzentration in µM</span>
+            </div>
+
+            <div class="form-group">
+                <label>💬 4. Labor-Notizen</label>
+                <textarea rows="3" id="notes" placeholder="z.B. Lichtempfindlich, schwer löslich..."></textarea>
+            </div>
+
+            <div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px;">
+                <button class="btn btn-primary" onclick="generateOrder()">
+                    <span>✓</span>
+                    <span>Auftrag berechnen</span>
+                </button>
+                <button class="btn btn-outline" onclick="exportPDF()">
+                    <span>📄</span>
+                    <span>Als PDF exportieren</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="content" id="mainContent">
+            
+            <div class="header-section">
+                <div class="service-title" id="displayTitle">Metabolische Stabilität</div>
+                <div class="service-desc" id="displayDesc">
+                    Bestimmung der intrinsischen Clearance und Halbwertszeit in Lebermikrosomen. Goldstandard für die Vorhersage der Bioverfügbarkeit.
+                </div>
+            </div>
+
+            <div class="kpi-row">
+                <div class="kpi-badge">
+                    ⏱️ TAT: <strong id="tatValue">5 Werktage</strong>
+                </div>
+                <div class="kpi-badge purple">
+                    🧪 Bedarf: <strong id="sampleValue">50 µL (10mM)</strong>
+                </div>
+                <div class="kpi-badge cyan">
+                    📊 Methode: <strong id="methodValue">LC-MS/MS</strong>
+                </div>
+            </div>
+
+            <!-- Info Box - wechselt je nach Service -->
+            <div id="infoStability" class="info-box">
+                <div class="info-box-title">ℹ️ Was wird gemessen?</div>
+                Metabolische Stabilität misst den enzymatischen Abbau durch CYP-Enzyme in Lebermikrosomen über 60 Min. Ergebnisse: Halbwertszeit (t½) und intrinsische Clearance (CLint) für Dosisvorhersagen.
+            </div>
+
+            <div id="infoBinding" class="info-box hidden">
+                <div class="info-box-title">ℹ️ Was wird gemessen?</div>
+                Plasmaproteinbindung bestimmt den Anteil an Albumin/Glykoprotein. Nur die freie Fraktion (fu) ist aktiv. Hohe Bindung (>95%) kann zu Wechselwirkungen führen.
+            </div>
+
+            <div id="infoPermeability" class="info-box hidden">
+                <div class="info-box-title">ℹ️ Was wird gemessen?</div>
+                Caco-2 simuliert die Darmbarriere. Bidirektionaler Transport (A→B/B→A) zeigt Permeabilität und Efflux. Ratio >2 deutet auf P-gp-Substrat hin.
+            </div>
+
+            <div class="sim-box">
+                <div class="sim-header">
+                    <span class="sim-title">🧪 Experiment-Simulator</span>
+                    <span class="sim-value" id="simValueDisplay">t½ = 30 min</span>
+                </div>
+                <div class="sim-description" id="simDesc">
+                    Simulieren Sie Szenarien, um das Verhalten Ihrer Substanz zu verstehen.
+                </div>
+                
+                <!-- Stability Slider -->
+                <div id="slider-stability">
+                    <input type="range" id="rangeStability" min="5" max="120" value="30" oninput="updateSimulation()">
+                    <div class="slider-labels">
+                        <span>⚡ Instabil (5 min)</span>
+                        <span>🛡️ Sehr stabil (120 min)</span>
+                    </div>
+                </div>
+
+                <!-- Binding Slider -->
+                <div id="slider-binding" class="hidden">
+                    <input type="range" id="rangeBinding" min="0" max="100" value="95" oninput="updateSimulation()">
+                    <div class="slider-labels">
+                        <span>💨 Kaum gebunden (0%)</span>
+                        <span>🔒 Stark gebunden (100%)</span>
+                    </div>
+                </div>
+
+                <!-- Permeability Slider -->
+                <div id="slider-permeability" class="hidden">
+                    <input type="range" id="rangePerm" min="0.1" max="5" step="0.1" value="1" oninput="updateSimulation()">
+                    <div class="slider-labels">
+                        <span>✅ Kein Efflux (1.0)</span>
+                        <span>⚠️ Starker Efflux (>3.0)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-wrapper">
+                <canvas id="mainChart"></canvas>
+            </div>
+
+            <div id="orderSummary" class="order-summary"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Print View -->
+<div class="print-view" id="printView"></div>
+
+<script>
+    /* --- CONFIGURATION --- */
+    const services = {
+        stability: {
+            title: "Metabolische Stabilität (Mikrosomen)",
+            desc: "Messung des enzymatischen Abbaus über 60 Minuten in Lebermikrosomen (RLM/HLM). Berechnung von Halbwertszeit (t½) und intrinsischer Clearance (CLint).",
+            tat: "5 Werktage",
+            sample: "50 µL (10mM)",
+            method: "LC-MS/MS",
+            unit: "min",
+            sliderLabel: "Erwartete Halbwertszeit",
+            simDesc: "Variieren Sie die Halbwertszeit. Kurze t½ (<15 min) = hohe hepatische Clearance."
+        },
+        binding: {
+            title: "Plasmaproteinbindung (Equilibrium Dialysis)",
+            desc: "Bestimmung der freien Fraktion (fu) mittels Equilibrium Dialysis. Human/Tier-Plasma verfügbar. Kritisch für PK/PD-Modellierung.",
+            tat: "7 Werktage",
+            sample: "100 µL (10mM)",
+            method: "Dialyse/UF",
+            unit: "% gebunden",
+            sliderLabel: "Erwartete Bindung",
+            simDesc: "Hohe Bindung (>95%) = nur kleiner freier Anteil wirksam. Beeinflusst Wirksamkeit."
+        },
+        permeability: {
+            title: "Caco-2 Permeabilität (Bidirektional)",
+            desc: "Simulation der intestinalen Absorption via Caco-2 Monolayer. Bidirektional (A→B/B→A) für Efflux-Transporter (P-gp, BCRP, MRP2).",
+            tat: "10 Werktage",
+            sample: "75 µL (10mM)",
+            method: "Transwell",
+            unit: "Efflux Ratio",
+            sliderLabel: "Erwartete Efflux Ratio",
+            simDesc: "Efflux Ratio >2 = aktiver Efflux (P-gp). Reduziert orale Bioverfügbarkeit."
+        }
+    };
+
+    let currentChart = null;
+    let updateTimeout = null;
+
+    /* --- INITIALIZATION --- */
+    function init() {
+        createParticles();
+        changeService();
+    }
+
+    function createParticles() {
+        const container = document.getElementById('particles');
+        for (let i = 0; i < 10; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.width = particle.style.height = (Math.random() * 80 + 30) + 'px';
+            particle.style.animationDuration = (Math.random() * 15 + 15) + 's';
+            particle.style.animationDelay = Math.random() * 10 + 's';
+            container.appendChild(particle);
+        }
+    }
+
+    /* --- SERVICE MANAGEMENT --- */
+    function changeService() {
+        const serviceKey = document.getElementById('serviceSelect').value;
+        const service = services[serviceKey];
+
+        document.getElementById('displayTitle').innerText = service.title;
+        document.getElementById('displayDesc').innerText = service.desc;
+        document.getElementById('tatValue').innerText = service.tat;
+        document.getElementById('sampleValue').innerText = service.sample;
+        document.getElementById('methodValue').innerText = service.method;
+        document.getElementById('simDesc').innerText = service.simDesc;
+
+        document.getElementById('infoStability').classList.toggle('hidden', serviceKey !== 'stability');
+        document.getElementById('infoBinding').classList.toggle('hidden', serviceKey !== 'binding');
+        document.getElementById('infoPermeability').classList.toggle('hidden', serviceKey !== 'permeability');
+
+        document.getElementById('slider-stability').classList.toggle('hidden', serviceKey !== 'stability');
+        document.getElementById('slider-binding').classList.toggle('hidden', serviceKey !== 'binding');
+        document.getElementById('slider-permeability').classList.toggle('hidden', serviceKey !== 'permeability');
+
+        updateSimulation();
+    }
+
+    /* --- SIMULATION UPDATE (WITH DEBOUNCE) --- */
+    function updateSimulation() {
+        if (updateTimeout) clearTimeout(updateTimeout);
+        
+        updateTimeout = setTimeout(() => {
+            const serviceKey = document.getElementById('serviceSelect').value;
+            
+            if (serviceKey === 'stability') {
+                const t12 = document.getElementById('rangeStability').value;
+                document.getElementById('simValueDisplay').innerText = `t½ = ${t12} min`;
+                renderStabilityChart(t12);
+            } else if (serviceKey === 'binding') {
+                const bound = document.getElementById('rangeBinding').value;
+                document.getElementById('simValueDisplay').innerText = `${bound}% gebunden`;
+                renderBindingChart(bound);
+            } else if (serviceKey === 'permeability') {
+                const ratio = parseFloat(document.getElementById('rangePerm').value);
+                document.getElementById('simValueDisplay').innerText = `Efflux = ${ratio.toFixed(1)}`;
+                renderPermChart(ratio);
+            }
+        }, 50);
+    }
+
+    /* --- CHART RENDERING --- */
+    function destroyChart() {
+        if (currentChart) {
+            currentChart.destroy();
+            currentChart = null;
+        }
+    }
+
+    // 1. STABILITY CHART (Line)
+    function renderStabilityChart(t12) {
+        const k = 0.693 / parseFloat(t12);
+        const times = [0, 10, 20, 30, 45, 60];
+        const values = times.map(t => 100 * Math.exp(-k * t) + (Math.random() - 0.5) * 2);
+
+        if (!currentChart) {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: times,
+                    datasets: [{
+                        label: 'Verbleibende Substanz (%)',
+                        data: values,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#3b82f6',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: getChartOptions('Zeit (min)', 'Substanz verbleibend (%)', 110)
+            });
+        } else {
+            currentChart.data.datasets[0].data = values;
+            currentChart.update('none');
+        }
+    }
+
+    // 2. BINDING CHART (Doughnut)
+    function renderBindingChart(boundPct) {
+        const freePct = 100 - parseFloat(boundPct);
+        
+        if (!currentChart || currentChart.config.type !== 'doughnut') {
+            destroyChart();
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            currentChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['An Protein gebunden', 'Frei verfügbar (fu)'],
+                    datasets: [{
+                        data: [boundPct, freePct],
+                        backgroundColor: ['#cbd5e1', '#3b82f6'],
+                        borderWidth: 0,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    animation: { duration: 0 },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 11, weight: '600' },
+                                padding: 15,
+                                color: '#1e293b'
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Verteilung im Plasma',
+                            font: { size: 14, weight: '700' },
+                            color: '#1e293b',
+                            padding: 15
+                        }
+                    }
+                }
+            });
+        } else {
+            currentChart.data.datasets[0].data = [boundPct, freePct];
+            currentChart.update('none');
+        }
+    }
+
+    // 3. PERMEABILITY CHART (Bar)
+    function renderPermChart(ratio) {
+        const pappAB = 15;
+        const pappBA = pappAB * parseFloat(ratio);
+        const isHighEfflux = ratio > 2;
+
+        if (!currentChart || currentChart.config.type !== 'bar') {
+            destroyChart();
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['A → B (Absorption)', 'B → A (Efflux)'],
+                    datasets: [{
+                        label: 'Papp (10⁻⁶ cm/s)',
+                        data: [pappAB, pappBA],
+                        backgroundColor: ['#10b981', isHighEfflux ? '#ef4444' : '#3b82f6'],
+                        borderRadius: 8,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 0 },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: { size: 11, weight: '600' },
+                                color: '#1e293b'
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: `Ratio: ${ratio.toFixed(1)} ${isHighEfflux ? '⚠️ P-gp?' : '✅ Gut'}`,
+                            font: { size: 14, weight: '700' },
+                            color: isHighEfflux ? '#ef4444' : '#10b981',
+                            padding: 15
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Papp (10⁻⁶ cm/s)',
+                                font: { size: 11, weight: '600' },
+                                color: '#475569'
+                            },
+                            grid: { color: '#f1f5f9' },
+                            ticks: { font: { size: 10 } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+        } else {
+            currentChart.data.datasets[0].data = [pappAB, pappBA];
+            currentChart.data.datasets[0].backgroundColor = ['#10b981', isHighEfflux ? '#ef4444' : '#3b82f6'];
+            currentChart.options.plugins.title.text = `Ratio: ${ratio.toFixed(1)} ${isHighEfflux ? '⚠️ P-gp?' : '✅ Gut'}`;
+            currentChart.options.plugins.title.color = isHighEfflux ? '#ef4444' : '#10b981';
+            currentChart.update('none');
+        }
+    }
+
+    function getChartOptions(xLabel, yLabel, yMax) {
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: { size: 11, weight: '600' },
+                        color: '#1e293b'
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: yMax,
+                    title: {
+                        display: true,
+                        text: yLabel,
+                        font: { size: 11, weight: '600' },
+                        color: '#475569'
+                    },
+                    grid: { color: '#f1f5f9' },
+                    ticks: { font: { size: 10 } }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: xLabel,
+                        font: { size: 11, weight: '600' },
+                        color: '#475569'
+                    },
+                    grid: { color: '#f1f5f9' },
+                    ticks: { font: { size: 10 } }
+                }
+            }
+        };
+    }
+
+    /* --- ORDER GENERATION --- */
+    function generateOrder() {
+        const serviceKey = document.getElementById('serviceSelect').value;
+        const service = services[serviceKey];
+        const id = document.getElementById('compoundId').value || "Nicht angegeben";
+        const conc = document.getElementById('conc').value;
+        const notes = document.getElementById('notes').value || "Keine";
+        const date = new Date().toLocaleString('de-DE', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        let simValue = '';
+        if (serviceKey === 'stability') {
+            simValue = `Erwartete t½: ${document.getElementById('rangeStability').value} min`;
+        } else if (serviceKey === 'binding') {
+            simValue = `Erwartete Bindung: ${document.getElementById('rangeBinding').value}%`;
+        } else {
+            simValue = `Erwartete Efflux Ratio: ${parseFloat(document.getElementById('rangePerm').value).toFixed(1)}`;
+        }
+
+        const orderText = `
+╔═══════════════════════════════════════════════════════════════╗
+║              DMPK AUFTRAGSBESTÄTIGUNG                         ║
+║               BioAssay Direct Services                        ║
+╚═══════════════════════════════════════════════════════════════╝
+
+DATUM:         ${date}
+AUFTRAGS-ID:   ${Date.now()}
+
+═══════════════════════════════════════════════════════════════
+
+📋 SERVICE: ${service.title}
+
+${service.desc}
+
+═══════════════════════════════════════════════════════════════
+
+🧬 SUBSTANZ:
+   ID:             ${id}
+   Konzentration:  ${conc} µM
+   Notizen:        ${notes}
+
+═══════════════════════════════════════════════════════════════
+
+📊 PARAMETER:
+   ⏱️  TAT:        ${service.tat}
+   🧪 Bedarf:      ${service.sample}
+   📈 Methode:     ${service.method}
+   
+   ${simValue}
+
+═══════════════════════════════════════════════════════════════
+
+✅ STATUS: BEREIT FÜR LABOR
+   Abschluss: ${new Date(Date.now() + 7*24*60*60*1000).toLocaleDateString('de-DE')}
+
+═══════════════════════════════════════════════════════════════
+
+support@bioassay-direct.com | © 2026 BioAssay Direct
+        `;
+
+        const summaryBox = document.getElementById('orderSummary');
+        summaryBox.innerText = orderText;
+        summaryBox.classList.add('active');
+        
+        setTimeout(() => {
+            summaryBox.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }, 100);
+    }
+
+    /* --- PDF EXPORT (OPTIMIZED) --- */
+    function exportPDF() {
+        if (!document.getElementById('orderSummary').classList.contains('active')) {
+            generateOrder();
+        }
+        
+        setTimeout(() => {
+            // Prepare print view
+            const printView = document.getElementById('printView');
+            const canvas = document.getElementById('mainChart');
+            const chartImage = canvas.toDataURL('image/png', 1.0);
+            
+            const serviceKey = document.getElementById('serviceSelect').value;
+            const service = services[serviceKey];
+            const orderText = document.getElementById('orderSummary').innerText;
+            
+            printView.innerHTML = `
+                <div class="print-header">
+                    <div class="print-title">${service.title}</div>
+                    <div class="print-desc">${service.desc}</div>
+                </div>
+                <div class="print-kpi">
+                    <div class="print-kpi-item">⏱️ TAT: ${service.tat}</div>
+                    <div class="print-kpi-item">🧪 Bedarf: ${service.sample}</div>
+                    <div class="print-kpi-item">📊 Methode: ${service.method}</div>
+                </div>
+                <img src="${chartImage}" class="print-chart" />
+                <div class="print-summary">${orderText}</div>
+            `;
+            
+            // Trigger print
+            window.print();
+        }, 300);
+    }
+
+    window.addEventListener('load', init);
+
+</script>
+</body>
+</html>
