@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMPK Präklinische Forschung - Interaktive Visualisierung</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --light-bg: #f4f7f6;
+            --text: #333;
+            --card-bg: #ffffff;
+            --drug-color: #e74c3c;
+            --metabolite-color: #95a5a6;
+            --protein-color: #2980b9;
+            --receptor-color: #c0392b;
+            --success-color: #27ae60;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--light-bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: var(--card-bg);
+            padding: 20px 40px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; color: var(--primary); }
+        h2 { color: var(--accent); margin-top: 0; }
+        .subtitle { font-size: 0.9rem; color: #7f8c8d; }
+
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .intro-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+
+        .module {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 40px;
+            overflow: hidden;
+        }
+
+        .module.featured {
+            border: 3px solid var(--accent);
+        }
+
+        .canvas-container {
+            background-color: #eef2f3;
+            position: relative;
+            height: 400px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .canvas-container.tall {
+            height: 600px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls {
+            padding: 25px;
+            border-left: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .control-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .value-display {
+            float: right;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .info-text {
+            font-size: 0.9rem;
+            color: #555;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border-left: 4px solid var(--accent);
+        }
+
+        .score-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .score-value {
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .score-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .preset-btn {
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        .preset-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .preset-ideal { background: #27ae60; }
+        .preset-gut { background: #2ecc71; }
+        .preset-befriedigend { background: #f39c12; }
+        .preset-ausreichend { background: #e67e22; }
+        .preset-mangelhaft { background: #d35400; }
+        .preset-ungenuegend { background: #c0392b; }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        
+        .c-drug { background: var(--drug-color); }
+        .c-meta { background: var(--metabolite-color); }
+        .c-prot { background: var(--protein-color); }
+        .c-receptor { background: var(--receptor-color); }
+        .c-success { background: var(--success-color); }
+
+        .label-overlay {
+            position: absolute;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #555;
+            background: rgba(255,255,255,0.8);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 900px) {
+            .module { grid-template-columns: 1fr; }
+            .module.featured { grid-template-columns: 1fr; }
+            .controls { border-left: none; border-top: 1px solid #eee; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>
+        <h1>DMPK Visualizer</h1>
+        <div class="subtitle">Drug Metabolism and Pharmacokinetics Simulation</div>
+    </div>
+    <div style="text-align: right; font-size: 0.8rem; color: #666;">
+        Präklinische Pharmaforschung<br>Interaktives Dashboard
+    </div>
+</header>
+
+<div class="container">
+    <div class="intro-box">
+        <h3>Einführung: Das Schicksal eines Medikaments</h3>
+        <p>In der frühen Phase der Wirkstoffforschung (Drug Discovery) muss geklärt werden, ob ein Molekül geeignete Eigenschaften besitzt, um ein Medikament zu werden. Wir simulieren hier kritische DMPK-Parameter vom Blut bis zur Zielzelle.</p>
+    </div>
+
+    <div class="module featured" id="module-integrated">
+        <div class="canvas-container tall">
+            <canvas id="canvas-integrated"></canvas>
+            <div class="label-overlay" style="top: 20px; left: 20px;">Blutbahn (Oben)</div>
+            <div class="label-overlay" style="top: 50%; left: 20px; transform: translateY(-50%); background: rgba(244,114,182,0.8); color: white;">Zellmembran</div>
+            <div class="label-overlay" style="bottom: 20px; left: 20px;">Zielgewebe (Unten)</div>
+        </div>
+        <div class="controls">
+            <h2>🎯 Gesamtsimulation</h2>
+            
+            <div class="score-box">
+                <div class="score-label">Rezeptor-Sättigung</div>
+                <div class="score-value" id="integrated-score">0%</div>
+                <div class="score-label" id="integrated-grade">Ungenügend</div>
+            </div>
+
+            <h3 style="font-size: 0.95rem; margin: 0 0 10px 0; color: #555;">Szenarien</h3>
+            <div class="preset-grid">
+                <button class="preset-btn preset-ideal" onclick="applyPreset('ideal')">Ideal</button>
+                <button class="preset-btn preset-gut" onclick="applyPreset('gut')">Gut</button>
+                <button class="preset-btn preset-befriedigend" onclick="applyPreset('befriedigend')">Befriedigend</button>
+                <button class="preset-btn preset-ausreichend" onclick="applyPreset('ausreichend')">Ausreichend</button>
+                <button class="preset-btn preset-mangelhaft" onclick="applyPreset('mangelhaft')">Mangelhaft</button>
+                <button class="preset-btn preset-ungenuegend" onclick="applyPreset('ungenuegend')">Ungenügend</button>
+            </div>
+
+            <div class="control-group">
+                <label>Wirkstoff-Dosis <span class="value-display" id="val-dose">5</span></label>
+                <input type="range" id="integrated-dose" min="1" max="10" value="5">
+            </div>
+
+            <div class="control-group">
+                <label>Diffusionskraft <span class="value-display" id="val-diffusion">50%</span></label>
+                <input type="range" id="integrated-diffusion" min="0" max="100" value="50">
+                <div class="range-labels"><span>Niedrig</span><span>Hoch</span></div>
+            </div>
+
+            <div class="control-group">
+                <label>Proteinbindung <span class="value-display" id="val-protein-bind">30%</span></label>
+                <input type="range" id="integrated-protein-bind" min="0" max="95" value="30">
+            </div>
+
+            <div class="control-group">
+                <label>Anzahl Proteine <span class="value-display" id="val-protein-count">6</span></label>
+                <input type="range" id="integrated-protein-count" min="0" max="15" value="6">
+            </div>
+
+            <div class="control-group">
+                <label>Metabolismus-Rate <span class="value-display" id="val-metabolism">40%</span></label>
+                <input type="range" id="integrated-metabolism" min="0" max="100" value="40">
+            </div>
+
+            <div class="control-group">
+                <label>Efflux-Aktivität <span class="value-display" id="val-efflux">40%</span></label>
+                <input type="range" id="integrated-efflux" min="0" max="100" value="40">
+            </div>
+
+            <div class="control-group">
+                <label>Anzahl Rezeptoren <span class="value-display" id="val-receptor-count">8</span></label>
+                <input type="range" id="integrated-receptor-count" min="3" max="15" value="8">
+            </div>
+
+            <div class="legend">
+                <div class="legend-item"><span class="dot c-drug"></span> Wirkstoff</div>
+                <div class="legend-item"><span class="dot c-prot"></span> Protein</div>
+                <div class="legend-item"><span class="dot c-receptor"></span> Rezeptor</div>
+                <div class="legend-item"><span class="dot c-success"></span> Erfolgreich</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="module" id="module-metabolism">
+        <div class="canvas-container">
+            <canvas id="canvas-metabolism"></canvas>
+            <div style="position: absolute; top: 10px; left: 10px; font-weight: bold; color: #555;">Simulation: Leber (Hepatozyten)</div>
+        </div>
+        <div class="controls">
+            <h2>1. Metabolische Stabilität</h2>
+            <div class="control-group">
+                <label for="metabolism-rate">Enzymaktivität (Clearance Rate)</label>
+                <input type="range" id="metabolism-rate" min="0" max="100" value="50">
+                <div class="range-labels">
+                    <span>Niedrig (Stabil)</span>
+                    <span>Hoch (Instabil)</span>
+                </div>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><span class="dot c-drug"></span> Wirkstoff</div>
+                <div class="legend-item"><span class="dot c-meta"></span> Metabolit (Inaktiv)</div>
+            </div>
+            <div class="info-text">
+                <p><strong>Die Leber als Filter:</strong> Enzyme wie CYP450 bauen Fremdstoffe ab. </p>
+                <p>Ist der Abbau zu schnell (hohe <em>Intrinsic Clearance</em>), verliert das Medikament seine Wirkung, bevor es das Zielgewebe erreicht (First-Pass-Effekt).</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="module" id="module-binding">
+        <div class="canvas-container">
+            <canvas id="canvas-binding"></canvas>
+            <div style="position: absolute; top: 10px; left: 10px; font-weight: bold; color: #555;">Simulation: Blutstrom (Plasma)</div>
+        </div>
+        <div class="controls">
+            <h2>2. Proteinbindung</h2>
+            <div class="control-group">
+                <label for="binding-affinity">Bindungsaffinität (zu Albumin)</label>
+                <input type="range" id="binding-affinity" min="0" max="95" value="50">
+                <div class="range-labels">
+                    <span>0% (Nur freie Fraktion)</span>
+                    <span>>95% (Stark gebunden)</span>
+                </div>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><span class="dot c-drug"></span> Freier Wirkstoff</div>
+                <div class="legend-item"><span class="dot c-prot"></span> Plasmaprotein</div>
+            </div>
+            <div class="info-text">
+                <p><strong>Freie Fraktion (f<sub>u</sub>):</strong> Im Blut binden viele Wirkstoffe an Proteine (z.B. Albumin). </p>
+                <p>Nur der <strong>freie</strong> Wirkstoff kann die Blutbahn verlassen und wirken. Eine zu hohe Bindung (>99%) kann die Verteilung im Körper behindern.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="module" id="module-transporter">
+        <div class="canvas-container">
+            <canvas id="canvas-transporter"></canvas>
+            <div style="position: absolute; top: 10px; left: 10px; font-weight: bold; color: #555;">Simulation: Zellmembran</div>
+        </div>
+        <div class="controls">
+            <h2>3. Transporter & Permeabilität</h2>
+            <div class="control-group">
+                <label for="transport-mode">Transport-Mechanismus</label>
+                <select id="transport-mode">
+                    <option value="passive">Passive Diffusion (Lipophil)</option>
+                    <option value="influx">Influx-Transporter (Aktive Aufnahme)</option>
+                    <option value="efflux">Efflux-Pumpe (z.B. P-gp)</option>
+                    <option value="impermeable">Keine Permeabilität</option>
+                </select>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><span class="dot c-drug"></span> Wirkstoff</div>
+                <div class="legend-item" style="border: 2px solid #333; height: 0px; width: 15px;"></div> Membran
+            </div>
+            <div class="info-text">
+                <p><strong>Rein oder Raus?</strong> Zellmembranen sind Barrieren. </p>
+                <ul style="margin: 5px 0; padding-left: 20px;">
+                    <li><strong>Passiv:</strong> Stoff diffundiert durch.</li>
+                    <li><strong>Efflux:</strong> Pumpen (wie P-gp) werfen den Stoff wieder raus (Problem bei Krebsresistenzen oder Blut-Hirn-Schranke).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const colors = {
+    drug: '#e74c3c',
+    metabolite: '#95a5a6',
+    protein: '#2980b9',
+    membrane: '#f472b6',
+    receptor: '#c0392b',
+    success: '#27ae60',
+    bg: '#eef2f3'
+};
+
+function resizeCanvas(canvas) {
+    const parent = canvas.parentElement;
+    canvas.width = parent.clientWidth;
+    canvas.height = parent.clientHeight;
+}
+
+class Particle {
+    constructor(x, y, speedX, speedY, type = 'drug') {
+        this.x = x;
+        this.y = y;
+        this.vx = speedX;
+        this.vy = speedY;
+        this.type = type;
+        this.radius = 4;
+        this.state = 'active';
+        this.boundTo = null;
+        this.tissueTime = 0;
+    }
+    
+    draw(ctx) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        if (this.type === 'drug') ctx.fillStyle = colors.drug;
+        if (this.type === 'metabolite') ctx.fillStyle = colors.metabolite;
+        if (this.type === 'success') ctx.fillStyle = colors.success;
+        ctx.fill();
+        ctx.closePath();
+    }
+}
+
+const intCanvas = document.getElementById('canvas-integrated');
+const intCtx = intCanvas.getContext('2d');
+
+const doseSlider = document.getElementById('integrated-dose');
+const diffusionSlider = document.getElementById('integrated-diffusion');
+const proteinBindSlider = document.getElementById('integrated-protein-bind');
+const proteinCountSlider = document.getElementById('integrated-protein-count');
+const metabolismSlider = document.getElementById('integrated-metabolism');
+const effluxSlider = document.getElementById('integrated-efflux');
+const receptorCountSlider = document.getElementById('integrated-receptor-count');
+
+document.getElementById('integrated-dose').oninput = (e) => {
+    document.getElementById('val-dose').textContent = e.target.value;
+};
+document.getElementById('integrated-diffusion').oninput = (e) => {
+    document.getElementById('val-diffusion').textContent = e.target.value + '%';
+};
+document.getElementById('integrated-protein-bind').oninput = (e) => {
+    document.getElementById('val-protein-bind').textContent = e.target.value + '%';
+};
+document.getElementById('integrated-protein-count').oninput = (e) => {
+    document.getElementById('val-protein-count').textContent = e.target.value;
+};
+document.getElementById('integrated-metabolism').oninput = (e) => {
+    document.getElementById('val-metabolism').textContent = e.target.value + '%';
+};
+document.getElementById('integrated-efflux').oninput = (e) => {
+    document.getElementById('val-efflux').textContent = e.target.value + '%';
+};
+document.getElementById('integrated-receptor-count').oninput = (e) => {
+    document.getElementById('val-receptor-count').textContent = e.target.value;
+};
+
+let intParticles = [];
+let intProteins = [];
+let intReceptors = [];
+let intScore = 0;
+let frameCount = 0;
+
+const PRESETS = {
+    ideal: { dose: 9, diffusion: 90, proteinBind: 5, proteinCount: 2, metabolism: 5, efflux: 5, receptorCount: 12 },
+    gut: { dose: 8, diffusion: 75, proteinBind: 15, proteinCount: 4, metabolism: 15, efflux: 15, receptorCount: 10 },
+    befriedigend: { dose: 6, diffusion: 55, proteinBind: 35, proteinCount: 6, metabolism: 35, efflux: 35, receptorCount: 8 },
+    ausreichend: { dose: 5, diffusion: 40, proteinBind: 50, proteinCount: 8, metabolism: 50, efflux: 50, receptorCount: 6 },
+    mangelhaft: { dose: 3, diffusion: 25, proteinBind: 70, proteinCount: 11, metabolism: 70, efflux: 70, receptorCount: 5 },
+    ungenuegend: { dose: 2, diffusion: 10, proteinBind: 85, proteinCount: 14, metabolism: 85, efflux: 85, receptorCount: 3 }
+};
+
+function applyPreset(name) {
+    const preset = PRESETS[name];
+    if (!preset) return;
+    
+    doseSlider.value = preset.dose;
+    diffusionSlider.value = preset.diffusion;
+    proteinBindSlider.value = preset.proteinBind;
+    proteinCountSlider.value = preset.proteinCount;
+    metabolismSlider.value = preset.metabolism;
+    effluxSlider.value = preset.efflux;
+    receptorCountSlider.value = preset.receptorCount;
+    
+    doseSlider.dispatchEvent(new Event('input'));
+    diffusionSlider.dispatchEvent(new Event('input'));
+    proteinBindSlider.dispatchEvent(new Event('input'));
+    proteinCountSlider.dispatchEvent(new Event('input'));
+    metabolismSlider.dispatchEvent(new Event('input'));
+    effluxSlider.dispatchEvent(new Event('input'));
+    receptorCountSlider.dispatchEvent(new Event('input'));
+    
+    intParticles = [];
+    intReceptors.forEach(r => r.hits = 0);
+}
+
+function initIntegrated() {
+    resizeCanvas(intCanvas);
+    intParticles = [];
+    intProteins = [];
+    intReceptors = [];
+    intScore = 0;
+    updateProteinsInt();
+    updateReceptorsInt();
+    requestAnimationFrame(loopIntegrated);
+}
+
+function updateProteinsInt() {
+    const targetCount = parseInt(proteinCountSlider.value);
+    const w = intCanvas.width;
+    const h = intCanvas.height;
+    const bloodZone = h * 0.35;
+    
+    while (intProteins.length < targetCount) {
+        intProteins.push({
+            x: Math.random() * w,
+            y: Math.random() * bloodZone,
+            r: 15,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: (Math.random() - 0.5) * 0.5
+        });
+    }
+    while (intProteins.length > targetCount) {
+        intProteins.pop();
+    }
+}
+
+function updateReceptorsInt() {
+    const targetCount = parseInt(receptorCountSlider.value);
+    const w = intCanvas.width;
+    const h = intCanvas.height;
+    const tissueZone = h * 0.75;
+    
+    while (intReceptors.length < targetCount) {
+        intReceptors.push({
+            x: Math.random() * w,
+            y: tissueZone + Math.random() * (h - tissueZone - 40),
+            r: 22,
+            vx: -0.3 - Math.random() * 0.3,
+            hits: 0
+        });
+    }
+    while (intReceptors.length > targetCount) {
+        intReceptors.pop();
+    }
+}
+
+function getReceptorColor(hits) {
+    if (hits >= 3) {
+        return { r: 39, g: 174, b: 96 };
+    } else if (hits >= 2) {
+        return { r: 241, g: 196, b: 15 };
+    } else if (hits >= 1) {
+        return { r: 230, g: 126, b: 34 };
+    } else {
+        return { r: 192, g: 57, b: 43 };
+    }
+}
+
+function loopIntegrated() {
+    const w = intCanvas.width;
+    const h = intCanvas.height;
+    
+    intCtx.fillStyle = colors.bg;
+    intCtx.fillRect(0, 0, w, h);
+    
+    const membraneY = h * 0.5;
+    const membraneThickness = 20;
+    
+    intCtx.fillStyle = 'rgba(255,200,200,0.1)';
+    intCtx.fillRect(0, 0, w, membraneY - membraneThickness/2);
+    
+    intCtx.fillStyle = colors.membrane;
+    intCtx.fillRect(0, membraneY - membraneThickness/2, w, membraneThickness);
+    
+    intCtx.fillStyle = 'rgba(200,255,200,0.1)';
+    intCtx.fillRect(0, membraneY + membraneThickness/2, w, h - membraneY);
+    
+    updateProteinsInt();
+    updateReceptorsInt();
+    
+    intCtx.fillStyle = colors.protein;
+    intProteins.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        
+        if (p.x < 0 || p.x > w) p.vx *= -1;
+        if (p.y < 0 || p.y > membraneY - 30) p.vy *= -1;
+        
+        intCtx.beginPath();
+        intCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        intCtx.fill();
+    });
+    
+    intReceptors.forEach(r => {
+        r.x += r.vx;
+        if (r.x < -r.r) r.x = w + r.r;
+        
+        const color = getReceptorColor(r.hits);
+        intCtx.fillStyle = `rgb(${color.r}, ${color.g}, ${color.b})`;
+        intCtx.beginPath();
+        intCtx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
+        intCtx.fill();
+        
+        // Minimaler Decay - Hits bleiben fast dauerhaft
+        if (r.hits > 3) r.hits = 3; // Cap bei 3
+        if (r.hits > 0 && r.hits < 3) {
+            r.hits -= 0.0005; // Sehr langsamer Decay
+            if (r.hits < 0) r.hits = 0;
+        }
+    });
+    
+    frameCount++;
+    const dose = parseInt(doseSlider.value);
+    const spawnRate = 40 - (dose * 3);
+    
+    if (frameCount % Math.max(5, spawnRate) === 0) {
+        intParticles.push(new Particle(
+            Math.random() * w * 0.3,
+            Math.random() * (membraneY * 0.3),
+            1.5 + Math.random() * 0.5,
+            0.5
+        ));
+    }
+    
+    const diffusion = parseFloat(diffusionSlider.value) / 100;
+    const proteinBind = parseFloat(proteinBindSlider.value) / 100;
+    const metabolism = parseFloat(metabolismSlider.value) / 100;
+    const efflux = parseFloat(effluxSlider.value) / 100;
+    
+    for (let i = intParticles.length - 1; i >= 0; i--) {
+        const p = intParticles[i];
+        
+        if (p.state === 'bound') {
+            if (p.boundTo && intProteins.includes(p.boundTo)) {
+                p.x = p.boundTo.x + (Math.random() - 0.5) * 10;
+                p.y = p.boundTo.y + (Math.random() - 0.5) * 10;
+                
+                if (Math.random() < 0.01) {
+                    p.state = 'active';
+                    p.boundTo = null;
+                    p.type = 'drug';
+                }
+            } else {
+                p.state = 'active';
+                p.boundTo = null;
+            }
+            p.draw(intCtx);
+            continue;
+        }
+        
+        const inTissue = p.y > membraneY + membraneThickness;
+        
+        if (inTissue) {
+            p.tissueTime++;
+            
+            p.x += p.vx;
+            p.y += p.vy;
+            
+            if (p.x < 5 || p.x > w - 5) p.vx *= -1;
+            if (p.y < membraneY + membraneThickness + 5 || p.y > h - 5) p.vy *= -1;
+            
+            const maxTissueFrames = 60 * 7;
+            if (p.tissueTime > maxTissueFrames) {
+                intParticles.splice(i, 1);
+                continue;
+            }
+        } else {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += diffusion * 0.03;
+            p.x += (Math.random() - 0.5) * 0.5;
+            p.y += (Math.random() - 0.5) * 0.5;
+        }
+        
+        if (p.y < membraneY - 30 && p.state === 'active') {
+            for (let prot of intProteins) {
+                const dx = p.x - prot.x;
+                const dy = p.y - prot.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                if (dist < prot.r + 5) {
+                    if (Math.random() < proteinBind * 0.1) {
+                        p.state = 'bound';
+                        p.boundTo = prot;
+                        p.type = 'drug';
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (p.y > membraneY - membraneThickness/2 && 
+            p.y < membraneY + membraneThickness/2 && 
+            p.state === 'active') {
+            
+            if (Math.random() < metabolism * 0.02) {
+                intParticles.splice(i, 1);
+                continue;
+            }
+            
+            if (Math.random() < efflux * 0.02) {
+                p.y = membraneY - membraneThickness/2 - 5;
+                p.vy = -2;
+                continue;
+            }
+            
+            if (p.y > membraneY) {
+                p.type = 'success';
+            }
+        }
+        
+        if (p.y > membraneY + 30 && p.type === 'success') {
+            for (let r of intReceptors) {
+                const dx = p.x - r.x;
+                const dy = p.y - r.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                // Größerer Kollisions-Radius
+                if (dist < r.r + 8) {
+                    if (r.hits < 3) {
+                        r.hits += 1;
+                    }
+                    intScore += 1;
+                    intParticles.splice(i, 1);
+                    break;
+                }
+            }
+        }
+        
+        if (p.x > w + 10 || p.x < -10) {
+            intParticles.splice(i, 1);
+            continue;
+        }
+        
+        p.draw(intCtx);
+    }
+    
+    requestAnimationFrame(loopIntegrated);
+}
+
+setInterval(() => {
+    const totalHits = intReceptors.reduce((sum, r) => sum + Math.min(3, r.hits), 0);
+    const maxPossibleHits = intReceptors.length * 3;
+    const avgSat = maxPossibleHits > 0 ? Math.round((totalHits / maxPossibleHits) * 100) : 0;
+    
+    document.getElementById('integrated-score').textContent = avgSat + '%';
+    
+    const gradeEl = document.getElementById('integrated-grade');
+    if (avgSat > 85) gradeEl.textContent = '✓ Ideal';
+    else if (avgSat > 65) gradeEl.textContent = '✓ Gut';
+    else if (avgSat > 50) gradeEl.textContent = '○ Befriedigend';
+    else if (avgSat > 30) gradeEl.textContent = '○ Ausreichend';
+    else if (avgSat > 10) gradeEl.textContent = '✗ Mangelhaft';
+    else gradeEl.textContent = '✗ Ungenügend';
+}, 500);
+
+const metabCanvas = document.getElementById('canvas-metabolism');
+const metabCtx = metabCanvas.getContext('2d');
+const metabSlider = document.getElementById('metabolism-rate');
+let metabParticles = [];
+
+function initMetabolism() {
+    resizeCanvas(metabCanvas);
+    metabParticles = [];
+    for(let i=0; i<60; i++) {
+        spawnMetabParticle();
+    }
+    requestAnimationFrame(loopMetabolism);
+}
+
+function spawnMetabParticle() {
+    metabParticles.push(new Particle(
+        Math.random() * metabCanvas.width,
+        Math.random() * metabCanvas.height,
+        (Math.random() - 0.5) * 1,
+        (Math.random() - 0.5) * 1
+    ));
+}
+
+function loopMetabolism() {
+    metabCtx.fillStyle = colors.bg;
+    metabCtx.fillRect(0, 0, metabCanvas.width, metabCanvas.height);
+
+    metabCtx.strokeStyle = 'rgba(200,200,200,0.3)';
+    metabCtx.lineWidth = 2;
+    for(let i=0; i<metabCanvas.width; i+=50) {
+        metabCtx.beginPath();
+        metabCtx.moveTo(i, 0); metabCtx.lineTo(i, metabCanvas.height);
+        metabCtx.stroke();
+    }
+
+    const rate = parseInt(metabSlider.value);
+    const conversionProb = rate / 5000;
+
+    if(metabParticles.length < 80) spawnMetabParticle();
+
+    metabParticles.forEach((p) => {
+        p.x += 1.5;
+        p.y += p.vy;
+
+        if (p.x > metabCanvas.width) {
+            p.x = 0;
+            p.type = 'drug';
+        }
+        if (p.y < 0 || p.y > metabCanvas.height) p.vy *= -1;
+
+        if (p.type === 'drug' && Math.random() < conversionProb) {
+            p.type = 'metabolite';
+        }
+
+        p.draw(metabCtx);
+    });
+
+    requestAnimationFrame(loopMetabolism);
+}
+
+const bindCanvas = document.getElementById('canvas-binding');
+const bindCtx = bindCanvas.getContext('2d');
+const bindSlider = document.getElementById('binding-affinity');
+let bindParticles = [];
+let proteins = [];
+
+function initBinding() {
+    resizeCanvas(bindCanvas);
+    proteins = [];
+    for(let i=0; i<12; i++) {
+        proteins.push({
+            x: Math.random() * (bindCanvas.width - 50) + 25,
+            y: Math.random() * (bindCanvas.height - 50) + 25,
+            r: 25
+        });
+    }
+    
+    bindParticles = [];
+    for(let i=0; i<50; i++) {
+        bindParticles.push(new Particle(
+            Math.random() * bindCanvas.width,
+            Math.random() * bindCanvas.height,
+            (Math.random() - 0.5) * 2,
+            (Math.random() - 0.5) * 2
+        ));
+    }
+    requestAnimationFrame(loopBinding);
+}
+
+function loopBinding() {
+    bindCtx.clearRect(0, 0, bindCanvas.width, bindCanvas.height);
+    
+    bindCtx.fillStyle = colors.protein;
+    proteins.forEach(prot => {
+        bindCtx.beginPath();
+        bindCtx.arc(prot.x, prot.y, prot.r, 0, Math.PI*2);
+        bindCtx.fill();
+        bindCtx.fillStyle = 'rgba(255,255,255,0.2)';
+        bindCtx.beginPath();
+        bindCtx.arc(prot.x - 5, prot.y - 5, prot.r/2, 0, Math.PI*2);
+        bindCtx.fill();
+        bindCtx.fillStyle = colors.protein;
+    });
+
+    const affinity = parseInt(bindSlider.value);
+    const bindDist = 30;
+
+    bindParticles.forEach(p => {
+        let isBound = false;
+        
+        for(let prot of proteins) {
+            const dx = p.x - prot.x;
+            const dy = p.y - prot.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+
+            if (dist < bindDist) {
+                if (Math.random() * 100 < affinity) {
+                    isBound = true;
+                    p.x -= dx * 0.05;
+                    p.y -= dy * 0.05;
+                }
+            }
+        }
+
+        if (!isBound) {
+            p.x += p.vx;
+            p.y += p.vy;
+            
+            if(p.x < 0 || p.x > bindCanvas.width) p.vx *= -1;
+            if(p.y < 0 || p.y > bindCanvas.height) p.vy *= -1;
+        }
+
+        p.draw(bindCtx);
+    });
+
+    requestAnimationFrame(loopBinding);
+}
+
+const transCanvas = document.getElementById('canvas-transporter');
+const transCtx = transCanvas.getContext('2d');
+const transSelect = document.getElementById('transport-mode');
+let transParticles = [];
+
+function initTransporter() {
+    resizeCanvas(transCanvas);
+    transParticles = [];
+    requestAnimationFrame(loopTransporter);
+}
+
+function loopTransporter() {
+    transCtx.clearRect(0, 0, transCanvas.width, transCanvas.height);
+    
+    const w = transCanvas.width;
+    const h = transCanvas.height;
+    const midY = h / 2;
+    const membraneThick = 40;
+    const mode = transSelect.value;
+
+    transCtx.fillStyle = colors.membrane;
+    transCtx.fillRect(0, midY - membraneThick/2, w, membraneThick);
+    
+    if (mode === 'influx' || mode === 'efflux') {
+        transCtx.fillStyle = '#f1c40f';
+        transCtx.fillRect(w/2 - 20, midY - membraneThick/2 - 5, 40, membraneThick + 10);
+        
+        transCtx.fillStyle = '#333';
+        transCtx.font = "20px Arial";
+        if(mode === 'influx') transCtx.fillText("↓", w/2 - 5, midY + 5);
+        else transCtx.fillText("↑", w/2 - 5, midY + 5);
+    }
+
+    if (transParticles.length < 40 && Math.random() < 0.05) {
+        transParticles.push(new Particle(
+            Math.random() * w,
+            0,
+            (Math.random() - 0.5) * 1,
+            1 + Math.random()
+        ));
+    }
+
+    transParticles.forEach((p, i) => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        const inMembraneZone = p.y > (midY - membraneThick/2) && p.y < (midY + membraneThick/2);
+        const inChannelZone = p.x > (w/2 - 20) && p.x < (w/2 + 20);
+
+        if (inMembraneZone) {
+            if (mode === 'impermeable') {
+                p.vy *= -1;
+                p.y = midY - membraneThick/2 - 2;
+            } 
+            else if (mode === 'passive') {
+                p.vy *= 0.6;
+            }
+            else if (mode === 'influx') {
+                if (inChannelZone) {
+                    p.vy += 0.5;
+                } else {
+                    p.vy *= -1;
+                    p.y = midY - membraneThick/2 - 2;
+                }
+            }
+            else if (mode === 'efflux') {
+                if (inChannelZone) {
+                    p.vy = -3;
+                } else {
+                    p.vy *= -1;
+                    p.y = midY - membraneThick/2 - 2;
+                }
+            }
+        }
+
+        if (p.y > h || p.y < -10) {
+            transParticles.splice(i, 1);
+        }
+
+        p.draw(transCtx);
+    });
+
+    requestAnimationFrame(loopTransporter);
+}
+
+window.onload = () => {
+    initIntegrated();
+    initMetabolism();
+    initBinding();
+    initTransporter();
+};
+
+window.onresize = () => {
+    resizeCanvas(intCanvas);
+    resizeCanvas(metabCanvas);
+    resizeCanvas(bindCanvas);
+    resizeCanvas(transCanvas);
+};
+
+</script>
+</body>
+</html>
