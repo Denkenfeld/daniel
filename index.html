@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Entry Tool - DMPK/Tox</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        select, input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .checkbox-item:hover {
+            background: #e9ecef;
+        }
+        
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #555;
+        }
+        
+        .input-group {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: end;
+        }
+        
+        .unit {
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 32px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .output {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .copy-btn {
+            background: #28a745;
+            margin-top: 10px;
+            font-size: 14px;
+            padding: 12px 24px;
+        }
+        
+        .copy-btn:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Order Entry Tool</h1>
+            <p>DMPK/Tox Analysen - KI Prompt Generator</p>
+        </div>
+        
+        <div class="content">
+            <!-- Themenauswahl -->
+            <div class="section">
+                <div class="section-title">Themenauswahl</div>
+                <div class="form-group">
+                    <label>Analysethema wählen:</label>
+                    <select id="topic">
+                        <option value="stability">Metabolische Stabilität</option>
+                        <option value="binding">Proteinbindung</option>
+                        <option value="transport">Zelltransporteraktivität</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Metabolische Stabilität -->
+            <div id="stability-section" class="section">
+                <div class="section-title">Metabolische Stabilität - Parameter</div>
+                
+                <div class="form-group">
+                    <label>System:</label>
+                    <select id="system">
+                        <option value="microsomes">Lebermikrosomen</option>
+                        <option value="hepatocytes">Hepatozyten</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Ergebnisparameter auswählen:</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="param1" value="t1/2 [min]">
+                            <label for="param1" style="margin: 0; cursor: pointer;">Halbwertzeit t1/2 [min]</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="param2" value="30min [%]">
+                            <label for="param2" style="margin: 0; cursor: pointer;">Halbwertzeit 30min [%]</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="param3" value="Fmax [%]">
+                            <label for="param3" style="margin: 0; cursor: pointer;">Bioverfügbarkeit Fmax [%]</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="param4" value="CLapp [mL/min/10^6 cells]">
+                            <label for="param4" style="margin: 0; cursor: pointer;">Apparente Clearance CLapp</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="param5" value="CLint [L/h/kg]">
+                            <label for="param5" style="margin: 0; cursor: pointer;">Intrinsische Clearance CLint</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="param6" value="CLb [L/h/kg]">
+                            <label for="param6" style="margin: 0; cursor: pointer;">Blood-Clearance CLb</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group" id="protein-conc">
+                    <label>Proteinkonzentration:</label>
+                    <div class="input-group">
+                        <input type="number" id="protein-value" value="0.5" step="0.1" min="0">
+                        <div class="unit">mg Protein/mL</div>
+                    </div>
+                </div>
+                
+                <div class="form-group hidden" id="cell-conc">
+                    <label>Zellkonzentration:</label>
+                    <div class="input-group">
+                        <input type="number" id="cell-value" value="1" step="0.1" min="0">
+                        <div class="unit">Mio. Cells/mL</div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Konzentration der Testsubstanz:</label>
+                    <div class="input-group">
+                        <input type="number" id="test-conc" value="1" step="0.1" min="0">
+                        <div class="unit">µM</div>
+                    </div>
+                </div>
+                
+                <div class="info-box" id="time-profile">
+                    <strong>Inkubationszeitprofil:</strong> 0-2-8-16-25-30-60 min (Lebermikrosomen)
+                </div>
+            </div>
+            
+            <!-- Proteinbindung -->
+            <div id="binding-section" class="section hidden">
+                <div class="section-title">Proteinbindung - Methoden</div>
+                
+                <div class="form-group">
+                    <label>Methode wählen:</label>
+                    <select id="binding-method">
+                        <option value="flux">Proteinbindung (fu) - FLUX-Dialyse</option>
+                        <option value="red">Proteinbindung (fu) - RED Device</option>
+                        <option value="plasma">Plasmastabilität</option>
+                        <option value="ratio">Blood-Plasma-Ratio</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Konzentration der Testsubstanz:</label>
+                    <div class="input-group">
+                        <input type="number" id="binding-conc" value="1" step="0.1" min="0">
+                        <div class="unit">µM</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Zelltransporteraktivität -->
+            <div id="transport-section" class="section hidden">
+                <div class="section-title">Zelltransporteraktivität - Methoden</div>
+                
+                <div class="form-group">
+                    <label>Zelltyp wählen:</label>
+                    <select id="transport-method">
+                        <option value="caco2">Caco-2 cells</option>
+                        <option value="mdck">MDCK cells</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Konzentration der Testsubstanz:</label>
+                    <div class="input-group">
+                        <input type="number" id="transport-conc" value="1" step="0.1" min="0">
+                        <div class="unit">µM</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Kommentarfeld -->
+            <div class="section">
+                <div class="section-title">Zusätzliche Informationen</div>
+                <div class="form-group">
+                    <label>Kommentar / Besondere Hinweise:</label>
+                    <textarea id="comments" placeholder="Hier können Sie zusätzliche Informationen oder besondere Anforderungen für die Analyse hinterlassen..."></textarea>
+                </div>
+            </div>
+            
+            <button class="btn" onclick="generatePrompt()">KI-Prompt generieren 🚀</button>
+            
+            <div id="output" class="output hidden"></div>
+            <button id="copy-btn" class="btn copy-btn hidden" onclick="copyToClipboard()">In Zwischenablage kopieren 📋</button>
+        </div>
+    </div>
+    
+    <script>
+        // Topic switching
+        document.getElementById('topic').addEventListener('change', function() {
+            const topic = this.value;
+            document.getElementById('stability-section').classList.toggle('hidden', topic !== 'stability');
+            document.getElementById('binding-section').classList.toggle('hidden', topic !== 'binding');
+            document.getElementById('transport-section').classList.toggle('hidden', topic !== 'transport');
+        });
+        
+        // System switching
+        document.getElementById('system').addEventListener('change', function() {
+            const isMicrosomes = this.value === 'microsomes';
+            document.getElementById('protein-conc').classList.toggle('hidden', !isMicrosomes);
+            document.getElementById('cell-conc').classList.toggle('hidden', isMicrosomes);
+            
+            const timeProfile = isMicrosomes 
+                ? '0-2-8-16-25-30-60 min (Lebermikrosomen)'
+                : '0-2-8-16-30-60-90 min (Hepatozyten)';
+            document.getElementById('time-profile').innerHTML = `<strong>Inkubationszeitprofil:</strong> ${timeProfile}`;
+        });
+        
+        function generatePrompt() {
+            const topic = document.getElementById('topic').value;
+            let prompt = '';
+            
+            if (topic === 'stability') {
+                prompt = generateStabilityPrompt();
+            } else if (topic === 'binding') {
+                prompt = generateBindingPrompt();
+            } else if (topic === 'transport') {
+                prompt = generateTransportPrompt();
+            }
+            
+            const comments = document.getElementById('comments').value.trim();
+            if (comments) {
+                prompt += `\n\nZusätzliche Hinweise:\n${comments}`;
+            }
+            
+            document.getElementById('output').textContent = prompt;
+            document.getElementById('output').classList.remove('hidden');
+            document.getElementById('copy-btn').classList.remove('hidden');
+        }
+        
+        function generateStabilityPrompt() {
+            const system = document.getElementById('system').value;
+            const systemName = system === 'microsomes' ? 'Lebermikrosomen' : 'Hepatozyten';
+            
+            const params = [];
+            for (let i = 1; i <= 6; i++) {
+                const checkbox = document.getElementById('param' + i);
+                if (checkbox.checked) {
+                    params.push(checkbox.value);
+                }
+            }
+            
+            const concentration = system === 'microsomes' 
+                ? document.getElementById('protein-value').value + ' mg Protein/mL'
+                : document.getElementById('cell-value').value + ' Mio. Cells/mL';
+            
+            const testConc = document.getElementById('test-conc').value;
+            const timeProfile = system === 'microsomes' 
+                ? '0-2-8-16-25-30-60 min'
+                : '0-2-8-16-30-60-90 min';
+            
+            let prompt = `DMPK/Tox Analyse - Metabolische Stabilität
+
+Analysesystem: ${systemName}
+${system === 'microsomes' ? 'Proteinkonzentration' : 'Zellkonzentration'}: ${concentration}
+Testsubstanzkonzentration: ${testConc} µM
+Inkubationszeitprofil: ${timeProfile}
+
+Gewünschte Ergebnisparameter:`;
+            
+            if (params.length > 0) {
+                params.forEach((param, index) => {
+                    prompt += `\n${index + 1}. ${param}`;
+                });
+            } else {
+                prompt += '\n(Bitte Ergebnisparameter auswählen)';
+            }
+            
+            return prompt;
+        }
+        
+        function generateBindingPrompt() {
+            const method = document.getElementById('binding-method').value;
+            const methodNames = {
+                'flux': 'Proteinbindung (fraction unbound fu) - FLUX-Dialyse',
+                'red': 'Proteinbindung (fraction unbound fu) - RED Device',
+                'plasma': 'Plasmastabilität',
+                'ratio': 'Blood-Plasma-Ratio'
+            };
+            
+            const testConc = document.getElementById('binding-conc').value;
+            
+            return `DMPK/Tox Analyse - Proteinbindung
+
+Methode: ${methodNames[method]}
+Testsubstanzkonzentration: ${testConc} µM`;
+        }
+        
+        function generateTransportPrompt() {
+            const method = document.getElementById('transport-method').value;
+            const methodName = method === 'caco2' ? 'Caco-2 cells' : 'MDCK cells';
+            const testConc = document.getElementById('transport-conc').value;
+            
+            return `DMPK/Tox Analyse - Zelltransporteraktivität
+
+Zelltyp: ${methodName}
+Testsubstanzkonzentration: ${testConc} µM`;
+        }
+        
+        function copyToClipboard() {
+            const output = document.getElementById('output').textContent;
+            navigator.clipboard.writeText(output).then(() => {
+                const btn = document.getElementById('copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Kopiert!';
+                btn.style.background = '#28a745';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
