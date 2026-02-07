@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMPK Sandbox: Pro Simulation</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600&display=swap');
+
+        body { margin: 0; overflow: hidden; background: #0f172a; color: #cbd5e1; font-family: 'Inter', sans-serif; }
+        
+        /* Layout Split */
+        #sim-container { position: absolute; top: 0; left: 0; width: 100%; height: 65%; z-index: 1; overflow: hidden; background: radial-gradient(circle at center, #1e293b 0%, #020617 100%); }
+        #ui-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 35%; z-index: 10; background: #0b1121; border-top: 1px solid #334155; display: flex; flex-direction: column; }
+
+        /* UI Styling */
+        .control-group { background: #1e293b; border-radius: 8px; padding: 12px; border: 1px solid #334155; }
+        .slider-label { display: flex; justify-content: space-between; font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; margin-bottom: 6px; color: #94a3b8; }
+        
+        /* Custom Range Slider */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%; background: #38bdf8; cursor: pointer; margin-top: -5px; box-shadow: 0 0 8px rgba(56, 189, 248, 0.5); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #475569; border-radius: 2px; }
+        
+        /* Stats Overlay on Canvas */
+        #stats-overlay { position: absolute; top: 20px; right: 20px; text-align: right; pointer-events: none; z-index: 5; }
+        .stat-box { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(4px); padding: 10px 20px; border-radius: 8px; border-left: 3px solid #38bdf8; margin-bottom: 8px; }
+
+        /* Live Status Ticker */
+        #status-ticker { 
+            position: absolute; 
+            top: 20px; 
+            left: 50%; 
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.9); 
+            backdrop-filter: blur(6px); 
+            padding: 16px 32px; 
+            border-radius: 12px; 
+            border: 2px solid #334155;
+            pointer-events: none; 
+            z-index: 5;
+            min-width: 300px;
+            text-align: center;
+        }
+        #status-ticker .label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+        #status-ticker .value {
+            font-size: 24px;
+            font-weight: bold;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Info Button */
+        #info-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 6;
+            background: rgba(56, 189, 248, 0.2);
+            border: 2px solid #38bdf8;
+            color: #38bdf8;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 20px;
+        }
+        #info-btn:hover {
+            background: rgba(56, 189, 248, 0.4);
+            transform: scale(1.1);
+        }
+
+        /* Info Panel */
+        #info-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 65%;
+            background: rgba(15, 23, 42, 0.98);
+            backdrop-filter: blur(10px);
+            z-index: 20;
+            display: none;
+            overflow-y: auto;
+            padding: 40px;
+        }
+        #info-panel.active {
+            display: block;
+        }
+        #info-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #1e293b;
+            border: 2px solid #475569;
+            color: #cbd5e1;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #info-close:hover {
+            background: #334155;
+            border-color: #64748b;
+        }
+
+        .legend-item {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border-left: 4px solid;
+        }
+
+        /* Preset Buttons */
+        .preset-btn {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            text-align: center;
+        }
+        .preset-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        /* Scrollbar */
+        #controls-scroll::-webkit-scrollbar { width: 8px; }
+        #controls-scroll::-webkit-scrollbar-track { background: #0b1121; }
+        #controls-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        
+        #info-panel::-webkit-scrollbar { width: 8px; }
+        #info-panel::-webkit-scrollbar-track { background: #0b1121; }
+        #info-panel::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <div id="sim-container">
+        <!-- Info Button -->
+        <div id="info-btn" onclick="toggleInfo()">
+            <i class="fas fa-info"></i>
+        </div>
+
+        <!-- Status Ticker -->
+        <div id="status-ticker">
+            <div class="label">Rezeptor Sättigung (Ziel)</div>
+            <div class="value" id="status-text" style="color: #ef4444;">UNZUREICHEND</div>
+        </div>
+
+        <!-- Stats Overlay -->
+        <div id="stats-overlay">
+            <div class="stat-box border-emerald-500">
+                <div class="text-[10px] uppercase tracking-wider text-slate-400">Rezeptor Sättigung</div>
+                <div class="text-2xl font-bold text-emerald-400 font-mono"><span id="score-display">0</span>%</div>
+            </div>
+            <div class="stat-box border-blue-500">
+                <div class="text-[10px] uppercase tracking-wider text-slate-400">Aktive Teilchen</div>
+                <div class="text-xl font-bold text-blue-400 font-mono" id="particle-count">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Panel -->
+    <div id="info-panel">
+        <div id="info-close" onclick="toggleInfo()">
+            <i class="fas fa-times"></i>
+        </div>
+        
+        <h1 class="text-3xl font-bold text-white mb-6 flex items-center gap-3">
+            <i class="fas fa-book-medical text-cyan-400"></i>
+            DMPK Simulation - Legende
+        </h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl">
+            
+            <div class="legend-item" style="border-left-color: #22d3ee;">
+                <h3 class="text-lg font-bold text-cyan-400 mb-2 flex items-center gap-2">
+                    <i class="fas fa-pills"></i> Wirkstoff (Cyan)
+                </h3>
+                <p class="text-sm text-slate-300 leading-relaxed">
+                    Das Medikament, das durch den Blutkreislauf fließt. Ziel ist es, die Membran zu durchqueren und an Rezeptoren zu binden.
+                </p>
+            </div>
+
+            <div class="legend-item" style="border-left-color: #1d4ed8;">
+                <h3 class="text-lg font-bold text-blue-400 mb-2 flex items-center gap-2">
+                    <i class="fas fa-circle-notch"></i> Protein (Blau)
+                </h3>
+                <p class="text-sm text-slate-300 leading-relaxed">
+                    <strong>Eiweiß-Bindung:</strong> Wie Magnete fangen Blutproteine das Medikament. Wenn es klebt, kann es nicht wirken. <br>
+                    <strong>Ziel:</strong> Niedrig halten, damit es frei schwimmt.
+                </p>
+            </div>
+
+            <div class="legend-item" style="border-left-color: #ef4444;">
+                <h3 class="text-lg font-bold text-red-400 mb-2 flex items-center gap-2">
+                    <i class="fas fa-bullseye"></i> Rezeptor (Rot → Grün)
+                </h3>
+                <p class="text-sm text-slate-300 leading-relaxed">
+                    Zielmoleküle unter der Membran. Je mehr Wirkstoffe andocken, desto grüner wird der Rezeptor. Vollständige Sättigung = therapeutischer Effekt.
+                </p>
+            </div>
+
+            <div class="legend-item" style="border-left-color: #38bdf8;">
+                <h3 class="text-lg font-bold text-cyan-300 mb-2 flex items-center gap-2">
+                    <i class="fas fa-grip-lines"></i> Membran (Blau)
+                </h3>
+                <p class="text-sm text-slate-300 leading-relaxed">
+                    Die Zellmembran trennt Blutkreislauf (oben) von Gewebe (unten). Der Wirkstoff muss diese Barriere passieren.
+                </p>
+            </div>
+
+            <div class="legend-item" style="border-left-color: #64748b;">
+                <h3 class="text-lg font-bold text-slate-400 mb-2 flex items-center gap-2">
+                    <i class="fas fa-flask"></i> Stoffwechsel / Leber (Grau)
+                </h3>
+                <p class="text-sm text-slate-300 leading-relaxed">
+                    <strong>Der Schredder:</strong> Enzyme zerstören den Wirkstoff. Zu hoch? Das Medikament wird sofort vernichtet und verschwindet (grau).
+                </p>
+            </div>
+
+            <div class="legend-item" style="border-left-color: #f97316;">
+                <h3 class="text-lg font-bold text-orange-400 mb-2 flex items-center gap-2">
+                    <i class="fas fa-door-open"></i> Efflux-Pumpe (Orange)
+                </h3>
+                <p class="text-sm text-slate-300 leading-relaxed">
+                    <strong>Der Türsteher:</strong> Pumpt das Medikament wieder aus der Zelle raus, bevor es wirken kann. Orange = zurückgepumpt.
+                </p>
+            </div>
+
+        </div>
+
+        <div class="mt-8 p-6 bg-slate-800 rounded-lg border border-slate-600">
+            <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+                <i class="fas fa-lightbulb text-yellow-400"></i> Spielanleitung
+            </h3>
+            <ul class="text-sm text-slate-300 space-y-2 leading-relaxed">
+                <li><strong>Ziel:</strong> Möglichst viele Rezeptoren auf 100% Sättigung bringen (grün)</li>
+                <li><strong>Strategie:</strong> Protein-Bindung, Metabolismus und Efflux niedrig halten</li>
+                <li><strong>Diffusion & Turbulenz:</strong> Helfen dem Wirkstoff, die Membran zu erreichen</li>
+                <li><strong>Presets:</strong> Nutze die voreingestellten Szenarien zum Experimentieren</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="ui-container">
+        <div class="px-6 py-3 border-b border-slate-700 bg-slate-900 flex justify-between items-center shadow-md">
+            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                <i class="fas fa-sliders-h text-cyan-400"></i> LABOR EINSTELLUNGEN
+            </h2>
+            <div class="text-xs text-slate-500 flex gap-4">
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-cyan-400"></span> Wirkstoff</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-600"></span> Protein</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500"></span> Rezeptor</span>
+            </div>
+        </div>
+
+        <div id="controls-scroll" class="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <div class="control-group">
+                <h3 class="text-xs font-bold text-slate-200 mb-3 border-b border-slate-600 pb-1">UMGEBUNG & MENGE</h3>
+                
+                <div class="mb-4">
+                    <div class="slider-label"><span>Tabletten Dosis</span> <span id="val-spawn">5</span></div>
+                    <input type="range" id="sl-spawn" min="1" max="20" value="5">
+                </div>
+                <div class="mb-4">
+                    <div class="slider-label"><span>Anzahl Proteine</span> <span id="val-proteins">8</span></div>
+                    <input type="range" id="sl-proteins" min="0" max="20" value="8">
+                </div>
+                <div class="mb-0">
+                    <div class="slider-label"><span>Anzahl Rezeptoren</span> <span id="val-receptors">5</span></div>
+                    <input type="range" id="sl-receptors" min="1" max="10" value="5">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3 class="text-xs font-bold text-slate-200 mb-3 border-b border-slate-600 pb-1">PHYSIK & FLUSS</h3>
+                
+                <div class="mb-4">
+                    <div class="slider-label"><span>Blut-Geschwindigkeit</span> <span id="val-speed">40</span></div>
+                    <input type="range" id="sl-speed" min="1" max="100" value="40">
+                </div>
+                <div class="mb-4">
+                    <div class="slider-label"><span>Turbulenz (Chaos)</span> <span id="val-turb">10</span></div>
+                    <input type="range" id="sl-turb" min="0" max="100" value="10">
+                </div>
+                <div class="mb-0">
+                    <div class="slider-label"><span>Diffusions-Rate</span> <span id="val-diff">30</span></div>
+                    <input type="range" id="sl-diff" min="0" max="100" value="30">
+                </div>
+            </div>
+
+            <div class="control-group border-blue-900/50 bg-blue-900/10">
+                <h3 class="text-xs font-bold text-blue-300 mb-3 border-b border-blue-800 pb-1">BIO-INTERAKTION</h3>
+                
+                <div class="mb-4">
+                    <div class="slider-label"><span class="text-blue-200">Protein-Bindung</span> <span id="val-bind">50</span></div>
+                    <input type="range" id="sl-bind" min="0" max="100" value="50" class="accent-blue-400">
+                </div>
+                <div class="mb-4">
+                    <div class="slider-label"><span class="text-gray-300">Metabolismus (Abbau)</span> <span id="val-metab">20</span></div>
+                    <input type="range" id="sl-metab" min="0" max="100" value="20" class="accent-gray-400">
+                </div>
+                <div class="mb-0">
+                    <div class="slider-label"><span class="text-orange-200">Efflux (Abwehr)</span> <span id="val-efflux">10</span></div>
+                    <input type="range" id="sl-efflux" min="0" max="100" value="10" class="accent-orange-400">
+                </div>
+            </div>
+
+            <div class="control-group flex flex-col gap-2">
+                <h3 class="text-xs font-bold text-slate-200 mb-1 border-b border-slate-600 pb-1">PRESETS & STEUERUNG</h3>
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="applyPreset('ideal')" class="preset-btn bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400">
+                        <i class="fas fa-star"></i> Ideal
+                    </button>
+                    <button onclick="applyPreset('gut')" class="preset-btn bg-green-600 hover:bg-green-500 text-white border-green-400">
+                        <i class="fas fa-check"></i> Gut
+                    </button>
+                    <button onclick="applyPreset('befriedigend')" class="preset-btn bg-lime-600 hover:bg-lime-500 text-white border-lime-400">
+                        <i class="fas fa-thumbs-up"></i> Befr.
+                    </button>
+                    <button onclick="applyPreset('ausreichend')" class="preset-btn bg-yellow-600 hover:bg-yellow-500 text-white border-yellow-400">
+                        <i class="fas fa-minus"></i> Ausr.
+                    </button>
+                    <button onclick="applyPreset('mangelhaft')" class="preset-btn bg-orange-600 hover:bg-orange-500 text-white border-orange-400">
+                        <i class="fas fa-exclamation"></i> Mang.
+                    </button>
+                    <button onclick="applyPreset('ungenuegend')" class="preset-btn bg-red-600 hover:bg-red-500 text-white border-red-400">
+                        <i class="fas fa-times"></i> Ungen.
+                    </button>
+                </div>
+
+                <button onclick="resetSim()" class="w-full py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs font-bold text-white transition mt-2">
+                    <i class="fas fa-undo mr-2"></i> RESET
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+    /**
+     * --- SYSTEM CONFIGURATION ---
+     */
+    const SETTINGS = {
+        spawnRate: 5,
+        maxParticles: 400,
+        flowSpeed: 0.2,
+        turbulence: 0.02,
+        diffusionChance: 0.3,  // DEUTLICH erhöht!
+        
+        bindChance: 0.5,
+        metabChance: 0.2,
+        effluxChance: 0.1,
+        
+        limitX: 40,
+        membraneY: -2,
+        
+        targetProteins: 8,
+        targetReceptors: 5
+    };
+
+    // PRESETS
+    const PRESETS = {
+        ideal: {
+            spawnRate: 15, proteins: 2, receptors: 5,
+            speed: 50, turb: 40, diff: 80,
+            bind: 10, metab: 5, efflux: 5
+        },
+        gut: {
+            spawnRate: 12, proteins: 4, receptors: 5,
+            speed: 45, turb: 35, diff: 70,
+            bind: 20, metab: 10, efflux: 10
+        },
+        befriedigend: {
+            spawnRate: 8, proteins: 6, receptors: 5,
+            speed: 40, turb: 25, diff: 50,
+            bind: 35, metab: 20, efflux: 20
+        },
+        ausreichend: {
+            spawnRate: 6, proteins: 8, receptors: 5,
+            speed: 35, turb: 20, diff: 35,
+            bind: 50, metab: 30, efflux: 30
+        },
+        mangelhaft: {
+            spawnRate: 4, proteins: 12, receptors: 5,
+            speed: 25, turb: 15, diff: 20,
+            bind: 70, metab: 50, efflux: 50
+        },
+        ungenuegend: {
+            spawnRate: 2, proteins: 15, receptors: 5,
+            speed: 20, turb: 10, diff: 10,
+            bind: 90, metab: 80, efflux: 80
+        }
+    };
+
+    function applyPreset(name) {
+        const p = PRESETS[name];
+        if(!p) return;
+        
+        document.getElementById('sl-spawn').value = p.spawnRate;
+        document.getElementById('sl-proteins').value = p.proteins;
+        document.getElementById('sl-receptors').value = p.receptors;
+        document.getElementById('sl-speed').value = p.speed;
+        document.getElementById('sl-turb').value = p.turb;
+        document.getElementById('sl-diff').value = p.diff;
+        document.getElementById('sl-bind').value = p.bind;
+        document.getElementById('sl-metab').value = p.metab;
+        document.getElementById('sl-efflux').value = p.efflux;
+        
+        // Trigger change events
+        document.querySelectorAll('input[type=range]').forEach(el => {
+            el.dispatchEvent(new Event('input'));
+        });
+        
+        resetSim();
+    }
+
+    function toggleInfo() {
+        document.getElementById('info-panel').classList.toggle('active');
+    }
+
+    // --- THREE.JS INIT ---
+    const container = document.getElementById('sim-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x020617, 0.015);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / (window.innerHeight * 0.65), 0.1, 1000);
+    camera.position.set(0, 0, 35);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight * 0.65);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.toneMapping = THREE.ReinhardToneMapping;
+    container.appendChild(renderer.domElement);
+
+    // --- POST PROCESSING ---
+    const composer = new THREE.EffectComposer(renderer);
+    const renderPass = new THREE.RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+    bloomPass.threshold = 0.2;
+    bloomPass.strength = 1.2;
+    bloomPass.radius = 0.5;
+    composer.addPass(bloomPass);
+
+    // --- LIGHTING ---
+    const ambientLight = new THREE.AmbientLight(0x404040, 2); 
+    scene.add(ambientLight);
+
+    const topLight = new THREE.DirectionalLight(0xffffff, 1);
+    topLight.position.set(0, 10, 5);
+    scene.add(topLight);
+
+    // --- MEMBRAN ---
+    const gridHelper = new THREE.GridHelper(200, 100, 0x1e293b, 0x0f172a);
+    gridHelper.position.y = SETTINGS.membraneY;
+    gridHelper.scale.z = 0.2;
+    scene.add(gridHelper);
+    
+    const membranePlane = new THREE.Mesh(
+        new THREE.PlaneGeometry(200, 0.2),
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.3, side: THREE.DoubleSide })
+    );
+    membranePlane.position.y = SETTINGS.membraneY;
+    scene.add(membranePlane);
+
+    // --- ARRAYS ---
+    let drugs = [];
+    let proteins = [];
+    let receptors = [];
+
+    // --- GEOMETRIES ---
+    const drugGeo = new THREE.SphereGeometry(0.2, 8, 8);
+    const drugMatActive = new THREE.MeshBasicMaterial({ color: 0x22d3ee });
+    const drugMatBound = new THREE.MeshBasicMaterial({ color: 0x3b82f6 });
+    const drugMatDead = new THREE.MeshBasicMaterial({ color: 0x334155 });
+    const drugMatEfflux = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+    const drugMatSuccess = new THREE.MeshBasicMaterial({ color: 0x10b981 });
+
+    const protGeo = new THREE.IcosahedronGeometry(1.8, 0);
+    const protMat = new THREE.MeshStandardMaterial({ 
+        color: 0x1d4ed8, roughness: 0.2, metalness: 0.5, 
+        emissive: 0x1e40af, emissiveIntensity: 0.4 
+    });
+
+    function updateProteins() {
+        while(proteins.length < SETTINGS.targetProteins) {
+            const p = new THREE.Mesh(protGeo, protMat);
+            p.position.set(
+                (Math.random() - 0.5) * 70,
+                Math.random() * 5 + (SETTINGS.membraneY + 2),
+                (Math.random() - 0.5) * 5
+            );
+            p.userData = { speed: Math.random() * 0.02 + 0.01 };
+            scene.add(p);
+            proteins.push(p);
+        }
+        while(proteins.length > SETTINGS.targetProteins) {
+            const p = proteins.pop();
+            scene.remove(p);
+        }
+    }
+
+    const recGeo = new THREE.TorusKnotGeometry(1.2, 0.35, 64, 8); 
+    const recMatBase = new THREE.MeshStandardMaterial({ 
+        color: 0xff0000, roughness: 0.3, metalness: 0.6,
+        emissive: 0x550000, emissiveIntensity: 0.5
+    });
+
+    function updateReceptors() {
+        while(receptors.length < SETTINGS.targetReceptors) {
+            const r = new THREE.Mesh(recGeo, recMatBase.clone());
+            r.position.set(
+                (Math.random() - 0.5) * 60,
+                SETTINGS.membraneY - 4 - (Math.random() * 3),
+                (Math.random() - 0.5) * 2
+            );
+            r.scale.set(1.5, 1.5, 1.5);
+            r.userData = { hits: 0, required: 20 };
+            scene.add(r);
+            receptors.push(r);
+        }
+        while(receptors.length > SETTINGS.targetReceptors) {
+            const r = receptors.pop();
+            scene.remove(r);
+        }
+    }
+
+    function spawnDrug() {
+        if(drugs.length >= SETTINGS.maxParticles) return;
+        
+        const d = new THREE.Mesh(drugGeo, drugMatActive.clone());
+        d.position.set(-45, Math.random() * 8 + (SETTINGS.membraneY + 1), (Math.random()-0.5)*5);
+        d.userData = { 
+            state: 'free', 
+            vel: new THREE.Vector3(SETTINGS.flowSpeed + Math.random() * 0.1, 0, 0)
+        };
+        scene.add(d);
+        drugs.push(d);
+    }
+
+    // --- MAIN LOGIC ---
+    function updateSim() {
+        proteins.forEach(p => {
+            p.position.x += SETTINGS.flowSpeed * 0.3;
+            p.rotation.x += 0.01; 
+            p.rotation.y += 0.005;
+            if(p.position.x > 45) p.position.x = -45;
+        });
+
+        let totalSaturation = 0;
+        receptors.forEach(r => {
+            r.position.x -= SETTINGS.flowSpeed * 0.2; 
+            r.rotation.z += 0.02;
+            if(r.position.x < -45) r.position.x = 45;
+
+            const sat = Math.min(1, r.userData.hits / r.userData.required);
+            totalSaturation += sat;
+            
+            const col = new THREE.Color();
+            if(sat < 0.5) col.setRGB(1, sat*2, 0);
+            else col.setRGB(1 - (sat-0.5)*2, 1, 0);
+            
+            r.material.color = col;
+            r.material.emissive = col;
+        });
+        
+        const scorePct = receptors.length > 0 ? Math.round((totalSaturation / receptors.length) * 100) : 0;
+        document.getElementById('score-display').innerText = scorePct;
+        
+        // Update Status Ticker
+        const statusEl = document.getElementById('status-text');
+        if(scorePct >= 90) {
+            statusEl.innerText = 'IDEAL';
+            statusEl.style.color = '#10b981';
+        } else if(scorePct >= 75) {
+            statusEl.innerText = 'GUT';
+            statusEl.style.color = '#22c55e';
+        } else if(scorePct >= 60) {
+            statusEl.innerText = 'BEFRIEDIGEND';
+            statusEl.style.color = '#84cc16';
+        } else if(scorePct >= 45) {
+            statusEl.innerText = 'AUSREICHEND';
+            statusEl.style.color = '#eab308';
+        } else if(scorePct >= 25) {
+            statusEl.innerText = 'MANGELHAFT';
+            statusEl.style.color = '#f97316';
+        } else {
+            statusEl.innerText = 'UNZUREICHEND';
+            statusEl.style.color = '#ef4444';
+        }
+
+        // DRUG LOGIC
+        for (let i = drugs.length - 1; i >= 0; i--) {
+            const d = drugs[i];
+            
+            if(d.position.x > 45 || d.position.y < -15) {
+                scene.remove(d); 
+                drugs.splice(i, 1); 
+                continue;
+            }
+
+            if(d.userData.state === 'bound') {
+                const p = d.userData.parentProtein;
+                d.position.copy(p.position).add(d.userData.offset);
+                
+                // Chance to unbind
+                if(Math.random() < 0.002) {
+                    d.userData.state = 'free';
+                    d.material.color.setHex(0x22d3ee);
+                    d.userData.vel.set(SETTINGS.flowSpeed, 0, 0);
+                }
+                continue;
+            }
+
+            if(d.userData.state === 'dead' || d.userData.state === 'success') {
+                d.scale.multiplyScalar(0.9);
+                if(d.scale.x < 0.01) { scene.remove(d); drugs.splice(i, 1); }
+                continue;
+            }
+
+            if(d.userData.state === 'efflux') {
+                d.position.add(d.userData.vel);
+                d.userData.vel.y -= 0.01; // Gravity
+                if(d.position.y > SETTINGS.membraneY + 2) {
+                    d.userData.state = 'free';
+                    d.material.color.setHex(0x22d3ee);
+                    d.userData.vel.y = 0;
+                    d.userData.vel.x = SETTINGS.flowSpeed;
+                }
+                continue;
+            }
+
+            // FREE STATE
+            d.position.x += d.userData.vel.x;
+            d.position.y += (Math.random() - 0.5) * SETTINGS.turbulence;
+            
+            // STARK VERBESSERTE DIFFUSION!
+            if(Math.random() < SETTINGS.diffusionChance) {
+                d.position.y -= 0.15; // Stärkerer Zug nach unten
+            }
+
+            // Metabolismus
+            if(Math.random() < (SETTINGS.metabChance * 0.0005)) {
+                d.userData.state = 'dead';
+                d.material.color.setHex(0x1e293b);
+                continue;
+            }
+
+            // Protein Bindung
+            if(d.position.y > SETTINGS.membraneY) {
+                for(let p of proteins) {
+                    if(d.position.distanceTo(p.position) < 2.0) {
+                        if(Math.random() < SETTINGS.bindChance) {
+                            d.userData.state = 'bound';
+                            d.userData.parentProtein = p;
+                            d.userData.offset = new THREE.Vector3().copy(d.position).sub(p.position);
+                            d.material.color.setHex(0x1d4ed8);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Membran Crossing & Efflux
+            if(d.position.y < SETTINGS.membraneY && d.position.y > SETTINGS.membraneY - 1) {
+                if(Math.random() < SETTINGS.effluxChance * 0.2) {
+                    d.userData.state = 'efflux';
+                    d.material.color.setHex(0xf97316);
+                    d.userData.vel.set(0.05, 0.25 + (Math.random()*0.1), 0);
+                    d.scale.set(1.5, 1.5, 1.5); 
+                    gsap.to(d.scale, {x:1, y:1, z:1, duration:0.5});
+                }
+            }
+
+            // Rezeptor Treffer
+            if(d.position.y < SETTINGS.membraneY - 1) {
+                d.material.color.setHex(0x4ade80);
+                
+                for(let r of receptors) {
+                    if(d.position.distanceTo(r.position) < 2.0) {
+                        r.userData.hits++;
+                        d.userData.state = 'success';
+                        d.material.color.setHex(0xffffff);
+                        
+                        const ring = new THREE.Mesh(
+                            new THREE.RingGeometry(0.5, 0.6, 16), 
+                            new THREE.MeshBasicMaterial({color:0x4ade80, transparent:true})
+                        );
+                        ring.position.copy(d.position); 
+                        ring.lookAt(camera.position);
+                        scene.add(ring);
+                        gsap.to(ring.scale, {x:3, y:3, duration:0.5});
+                        gsap.to(ring.material, {opacity:0, duration:0.5, onComplete:()=>scene.remove(ring)});
+                        break;
+                    }
+                }
+            }
+        }
+        
+        document.getElementById('particle-count').innerText = drugs.length;
+    }
+
+    // --- ANIMATION LOOP ---
+    let frame = 0;
+    function animate() {
+        requestAnimationFrame(animate);
+        
+        frame++;
+        const spawnDelay = Math.max(1, 21 - SETTINGS.spawnRate);
+        if(frame % spawnDelay === 0) {
+            spawnDrug();
+        }
+
+        updateProteins();
+        updateReceptors();
+        updateSim();
+        
+        composer.render();
+    }
+
+    // --- UI HANDLERS ---
+    const mappings = [
+        { id: 'sl-spawn', key: 'spawnRate', disp: 'val-spawn', tr: (v)=> v },
+        { id: 'sl-proteins', key: 'targetProteins', disp: 'val-proteins', tr: (v)=> v },
+        { id: 'sl-receptors', key: 'targetReceptors', disp: 'val-receptors', tr: (v)=> v },
+        
+        { id: 'sl-speed', key: 'flowSpeed', disp: 'val-speed', tr: (v)=> v, scale: 0.005 },
+        { id: 'sl-turb', key: 'turbulence', disp: 'val-turb', tr: (v)=> v, scale: 0.002 },
+        { id: 'sl-diff', key: 'diffusionChance', disp: 'val-diff', tr: (v)=> v, scale: 0.01 },
+
+        { id: 'sl-bind', key: 'bindChance', disp: 'val-bind', tr: (v)=> v, scale: 0.01 },
+        { id: 'sl-metab', key: 'metabChance', disp: 'val-metab', tr: (v)=> v, scale: 0.01 },
+        { id: 'sl-efflux', key: 'effluxChance', disp: 'val-efflux', tr: (v)=> v, scale: 0.01 },
+    ];
+
+    mappings.forEach(map => {
+        const el = document.getElementById(map.id);
+        const disp = document.getElementById(map.disp);
+        
+        el.addEventListener('input', (e) => {
+            let val = parseInt(e.target.value);
+            if(map.scale) SETTINGS[map.key] = val * map.scale;
+            else SETTINGS[map.key] = val;
+            
+            disp.innerText = map.tr ? map.tr(val) : val;
+        });
+        
+        el.dispatchEvent(new Event('input'));
+    });
+
+    function resetSim() {
+        drugs.forEach(d => scene.remove(d));
+        drugs = [];
+        receptors.forEach(r => { r.userData.hits = 0; });
+    }
+
+    window.addEventListener('resize', () => {
+        const h = window.innerHeight * 0.65;
+        camera.aspect = window.innerWidth / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, h);
+        composer.setSize(window.innerWidth, h);
+    });
+
+    animate();
+</script>
+</body>
+</html>
