@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMPK Präklinische Forschung - Interaktive Visualisierung</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --light-bg: #f4f7f6;
+            --text: #333;
+            --card-bg: #ffffff;
+            --drug-color: #e74c3c;
+            --metabolite-color: #95a5a6;
+            --protein-color: #2980b9;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--light-bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: var(--card-bg);
+            padding: 20px 40px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; color: var(--primary); }
+        h2 { color: var(--accent); margin-top: 0; }
+        .subtitle { font-size: 0.9rem; color: #7f8c8d; }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .intro-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+
+        /* Module Styles */
+        .module {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 40px;
+            overflow: hidden;
+        }
+
+        .canvas-container {
+            background-color: #eef2f3;
+            position: relative;
+            height: 400px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls {
+            padding: 25px;
+            border-left: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        .info-text {
+            font-size: 0.9rem;
+            color: #555;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border-left: 4px solid var(--accent);
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        
+        /* Specific Colors */
+        .c-drug { background: var(--drug-color); }
+        .c-meta { background: var(--metabolite-color); }
+        .c-prot { background: var(--protein-color); }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .module { grid-template-columns: 1fr; }
+            .controls { border-left: none; border-top: 1px solid #eee; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>
+        <h1>DMPK Visualizer</h1>
+        <div class="subtitle">Drug Metabolism and Pharmacokinetics Simulation</div>
+    </div>
+    <div style="text-align: right; font-size: 0.8rem; color: #666;">
+        Präklinische Pharmaforschung<br>Interaktives Dashboard
+    </div>
+</header>
+
+<div class="container">
+    <div class="intro-box">
+        <h3>Einführung: Das Schicksal eines Medikaments</h3>
+        <p>In der frühen Phase der Wirkstoffforschung (Drug Discovery) muss geklärt werden, ob ein Molekül geeignete Eigenschaften besitzt, um ein Medikament zu werden. Wir simulieren hier drei kritische DMPK-Parameter:</p>
+        <ol>
+            <li><strong>Metabolische Stabilität:</strong> Überlebt der Stoff die Leberpassage?</li>
+            <li><strong>Proteinbindung:</strong> Steht der Stoff im Blut frei zur Verfügung?</li>
+            <li><strong>Zelluläre Permeabilität:</strong> Gelangt der Stoff zum Wirkort in der Zelle?</li>
+        </ol>
+    </div>
+
+    <div class="module" id="module-metabolism">
+        <div class="canvas-container">
+            <canvas id="canvas-metabolism"></canvas>
+            <div style="position: absolute; top: 10px; left: 10px; font-weight: bold; color: #555;">Simulation: Leber (Hepatozyten)</div>
+        </div>
+        <div class="controls">
+            <h2>1. Metabolische Stabilität</h2>
+            <div class="control-group">
+                <label for="metabolism-rate">Enzymaktivität (Clearance Rate)</label>
+                <input type="range" id="metabolism-rate" min="0" max="100" value="50">
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #888;">
+                    <span>Niedrig (Stabil)</span>
+                    <span>Hoch (Instabil)</span>
+                </div>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><span class="dot c-drug"></span> Wirkstoff</div>
+                <div class="legend-item"><span class="dot c-meta"></span> Metabolit (Inaktiv)</div>
+            </div>
+            <div class="info-text">
+                <p><strong>Die Leber als Filter:</strong> Enzyme wie CYP450 bauen Fremdstoffe ab. </p>
+                <p>Ist der Abbau zu schnell (hohe <em>Intrinsic Clearance</em>), verliert das Medikament seine Wirkung, bevor es das Zielgewebe erreicht (First-Pass-Effekt).</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="module" id="module-binding">
+        <div class="canvas-container">
+            <canvas id="canvas-binding"></canvas>
+            <div style="position: absolute; top: 10px; left: 10px; font-weight: bold; color: #555;">Simulation: Blutstrom (Plasma)</div>
+        </div>
+        <div class="controls">
+            <h2>2. Proteinbindung</h2>
+            <div class="control-group">
+                <label for="binding-affinity">Bindungsaffinität (zu Albumin)</label>
+                <input type="range" id="binding-affinity" min="0" max="95" value="50">
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #888;">
+                    <span>0% (Nur freie Fraktion)</span>
+                    <span>>95% (Stark gebunden)</span>
+                </div>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><span class="dot c-drug"></span> Freier Wirkstoff</div>
+                <div class="legend-item"><span class="dot c-prot"></span> Plasmaprotein</div>
+            </div>
+            <div class="info-text">
+                <p><strong>Freie Fraktion (f<sub>u</sub>):</strong> Im Blut binden viele Wirkstoffe an Proteine (z.B. Albumin). </p>
+                <p>Nur der <strong>freie</strong> Wirkstoff kann die Blutbahn verlassen und wirken. Eine zu hohe Bindung (>99%) kann die Verteilung im Körper behindern.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="module" id="module-transporter">
+        <div class="canvas-container">
+            <canvas id="canvas-transporter"></canvas>
+            <div style="position: absolute; top: 10px; left: 10px; font-weight: bold; color: #555;">Simulation: Zellmembran</div>
+        </div>
+        <div class="controls">
+            <h2>3. Transporter & Permeabilität</h2>
+            <div class="control-group">
+                <label for="transport-mode">Transport-Mechanismus</label>
+                <select id="transport-mode">
+                    <option value="passive">Passive Diffusion (Lipophil)</option>
+                    <option value="influx">Influx-Transporter (Aktive Aufnahme)</option>
+                    <option value="efflux">Efflux-Pumpe (z.B. P-gp)</option>
+                    <option value="impermeable">Keine Permeabilität</option>
+                </select>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><span class="dot c-drug"></span> Wirkstoff</div>
+                <div class="legend-item" style="border: 2px solid #333; height: 0px; width: 15px;"></div> Membran
+            </div>
+            <div class="info-text">
+                <p><strong>Rein oder Raus?</strong> Zellmembranen sind Barrieren. </p>
+                <ul style="margin: 5px 0; padding-left: 20px;">
+                    <li><strong>Passiv:</strong> Stoff diffundiert durch.</li>
+                    <li><strong>Efflux:</strong> Pumpen (wie P-gp) werfen den Stoff wieder raus (Problem bei Krebsresistenzen oder Blut-Hirn-Schranke).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * GENERAL UTILS
+ */
+const colors = {
+    drug: '#e74c3c',
+    metabolite: '#95a5a6',
+    protein: '#2980b9',
+    membrane: '#34495e',
+    bg: '#eef2f3'
+};
+
+function resizeCanvas(canvas) {
+    const parent = canvas.parentElement;
+    canvas.width = parent.clientWidth;
+    canvas.height = parent.clientHeight;
+}
+
+// Particle Class Base
+class Particle {
+    constructor(x, y, speedX, speedY, type = 'drug') {
+        this.x = x;
+        this.y = y;
+        this.vx = speedX;
+        this.vy = speedY;
+        this.type = type;
+        this.radius = 4;
+        this.state = 'active'; // active, bound, metabolized
+    }
+    
+    draw(ctx) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        if (this.type === 'drug') ctx.fillStyle = colors.drug;
+        if (this.type === 'metabolite') ctx.fillStyle = colors.metabolite;
+        ctx.fill();
+        ctx.closePath();
+    }
+}
+
+/**
+ * MODULE 1: METABOLISM (LIVER)
+ */
+const metabCanvas = document.getElementById('canvas-metabolism');
+const metabCtx = metabCanvas.getContext('2d');
+const metabSlider = document.getElementById('metabolism-rate');
+let metabParticles = [];
+
+function initMetabolism() {
+    resizeCanvas(metabCanvas);
+    metabParticles = [];
+    for(let i=0; i<60; i++) {
+        spawnMetabParticle();
+    }
+    requestAnimationFrame(loopMetabolism);
+}
+
+function spawnMetabParticle() {
+    metabParticles.push(new Particle(
+        Math.random() * metabCanvas.width,
+        Math.random() * metabCanvas.height,
+        (Math.random() - 0.5) * 1, // Slow random movement
+        (Math.random() - 0.5) * 1
+    ));
+}
+
+function loopMetabolism() {
+    metabCtx.fillStyle = colors.bg;
+    metabCtx.fillRect(0, 0, metabCanvas.width, metabCanvas.height);
+
+    // Draw "Liver Cells" Background Pattern
+    metabCtx.strokeStyle = 'rgba(200,200,200,0.3)';
+    metabCtx.lineWidth = 2;
+    for(let i=0; i<metabCanvas.width; i+=50) {
+        metabCtx.beginPath();
+        metabCtx.moveTo(i, 0); metabCtx.lineTo(i, metabCanvas.height);
+        metabCtx.stroke();
+    }
+
+    const rate = parseInt(metabSlider.value); // 0 to 100
+    const conversionProb = rate / 5000; // Tuning factor
+
+    // Flow
+    if(metabParticles.length < 80) spawnMetabParticle();
+
+    metabParticles.forEach((p, index) => {
+        // Move
+        p.x += 1.5; // Blood flow direction
+        p.y += p.vy;
+
+        // Wrap around
+        if (p.x > metabCanvas.width) {
+            p.x = 0;
+            p.type = 'drug'; // Reset to fresh drug on reentry
+        }
+        if (p.y < 0 || p.y > metabCanvas.height) p.vy *= -1;
+
+        // Metabolism Logic
+        if (p.type === 'drug' && Math.random() < conversionProb) {
+            p.type = 'metabolite';
+        }
+
+        p.draw(metabCtx);
+    });
+
+    requestAnimationFrame(loopMetabolism);
+}
+
+/**
+ * MODULE 2: PROTEIN BINDING
+ */
+const bindCanvas = document.getElementById('canvas-binding');
+const bindCtx = bindCanvas.getContext('2d');
+const bindSlider = document.getElementById('binding-affinity');
+let bindParticles = [];
+let proteins = [];
+
+function initBinding() {
+    resizeCanvas(bindCanvas);
+    // Create static proteins
+    proteins = [];
+    for(let i=0; i<12; i++) {
+        proteins.push({
+            x: Math.random() * (bindCanvas.width - 50) + 25,
+            y: Math.random() * (bindCanvas.height - 50) + 25,
+            r: 25
+        });
+    }
+    
+    bindParticles = [];
+    for(let i=0; i<50; i++) {
+        bindParticles.push(new Particle(
+            Math.random() * bindCanvas.width,
+            Math.random() * bindCanvas.height,
+            (Math.random() - 0.5) * 2,
+            (Math.random() - 0.5) * 2
+        ));
+    }
+    requestAnimationFrame(loopBinding);
+}
+
+function loopBinding() {
+    bindCtx.clearRect(0, 0, bindCanvas.width, bindCanvas.height);
+    
+    // Draw Proteins
+    bindCtx.fillStyle = colors.protein;
+    proteins.forEach(prot => {
+        bindCtx.beginPath();
+        bindCtx.arc(prot.x, prot.y, prot.r, 0, Math.PI*2);
+        bindCtx.fill();
+        // Inner detail
+        bindCtx.fillStyle = 'rgba(255,255,255,0.2)';
+        bindCtx.beginPath();
+        bindCtx.arc(prot.x - 5, prot.y - 5, prot.r/2, 0, Math.PI*2);
+        bindCtx.fill();
+        bindCtx.fillStyle = colors.protein;
+    });
+
+    const affinity = parseInt(bindSlider.value); // 0 to 95
+    const bindDist = 30; // Distance to snap
+
+    bindParticles.forEach(p => {
+        let isBound = false;
+        
+        // Check collision with proteins
+        for(let prot of proteins) {
+            const dx = p.x - prot.x;
+            const dy = p.y - prot.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+
+            if (dist < bindDist) {
+                // Chance to stick based on slider
+                if (Math.random() * 100 < affinity) {
+                    isBound = true;
+                    // Move particle towards center of protein smoothly
+                    p.x -= dx * 0.05;
+                    p.y -= dy * 0.05;
+                }
+            }
+        }
+
+        if (!isBound) {
+            // Browninan motion
+            p.x += p.vx;
+            p.y += p.vy;
+            
+            // Wall bounce
+            if(p.x < 0 || p.x > bindCanvas.width) p.vx *= -1;
+            if(p.y < 0 || p.y > bindCanvas.height) p.vy *= -1;
+        }
+
+        p.draw(bindCtx);
+    });
+
+    requestAnimationFrame(loopBinding);
+}
+
+/**
+ * MODULE 3: TRANSPORTER
+ */
+const transCanvas = document.getElementById('canvas-transporter');
+const transCtx = transCanvas.getContext('2d');
+const transSelect = document.getElementById('transport-mode');
+let transParticles = [];
+
+function initTransporter() {
+    resizeCanvas(transCanvas);
+    transParticles = [];
+    requestAnimationFrame(loopTransporter);
+}
+
+function loopTransporter() {
+    transCtx.clearRect(0, 0, transCanvas.width, transCanvas.height);
+    
+    const w = transCanvas.width;
+    const h = transCanvas.height;
+    const midY = h / 2;
+    const membraneThick = 40;
+    const mode = transSelect.value;
+
+    // Draw Membrane
+    transCtx.fillStyle = colors.membrane;
+    transCtx.fillRect(0, midY - membraneThick/2, w, membraneThick);
+    
+    // Draw Transporter Channel (Visual)
+    if (mode === 'influx' || mode === 'efflux') {
+        transCtx.fillStyle = '#f1c40f'; // Yellow channel
+        transCtx.fillRect(w/2 - 20, midY - membraneThick/2 - 5, 40, membraneThick + 10);
+        
+        // Arrow indicating direction
+        transCtx.fillStyle = '#333';
+        transCtx.font = "20px Arial";
+        if(mode === 'influx') transCtx.fillText("↓", w/2 - 5, midY + 5);
+        else transCtx.fillText("↑", w/2 - 5, midY + 5);
+    }
+
+    // Spawn Particles (Top side)
+    if (transParticles.length < 40 && Math.random() < 0.05) {
+        transParticles.push(new Particle(
+            Math.random() * w,
+            0,
+            (Math.random() - 0.5) * 1,
+            1 + Math.random() // Falling down
+        ));
+    }
+
+    // Logic
+    transParticles.forEach((p, i) => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // Interaction with Membrane Zone
+        const inMembraneZone = p.y > (midY - membraneThick/2) && p.y < (midY + membraneThick/2);
+        const inChannelZone = p.x > (w/2 - 20) && p.x < (w/2 + 20);
+
+        if (inMembraneZone) {
+            if (mode === 'impermeable') {
+                p.vy *= -1; // Bounce back
+                p.y = midY - membraneThick/2 - 2;
+            } 
+            else if (mode === 'passive') {
+                p.vy *= 0.6; // Slow down but pass through
+            }
+            else if (mode === 'influx') {
+                if (inChannelZone) {
+                    p.vy += 0.5; // Accelerate down
+                } else {
+                    p.vy *= -1; // Bounce if not in channel
+                    p.y = midY - membraneThick/2 - 2;
+                }
+            }
+            else if (mode === 'efflux') {
+                if (inChannelZone) {
+                    p.vy = -3; // Pump OUT (Upwards) hard
+                } else {
+                    // Try to pass passively but might get caught by pump nearby? 
+                    // Simplify: Impermeable except pump ejects it
+                     p.vy *= -1; 
+                     p.y = midY - membraneThick/2 - 2;
+                }
+            }
+        }
+
+        // Cleanup
+        if (p.y > h || p.y < -10) {
+            transParticles.splice(i, 1);
+        }
+
+        p.draw(transCtx);
+    });
+
+    requestAnimationFrame(loopTransporter);
+}
+
+// Initialization
+window.onload = () => {
+    initMetabolism();
+    initBinding();
+    initTransporter();
+};
+
+window.onresize = () => {
+    // Basic re-init on resize to prevent stretching
+    resizeCanvas(metabCanvas);
+    resizeCanvas(bindCanvas);
+    resizeCanvas(transCanvas);
+};
+
+</script>
+</body>
+</html>
